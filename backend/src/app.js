@@ -4,10 +4,14 @@ import cors from 'cors';
 import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import swaggerUi from 'swagger-ui-express';
 
 
-import AuthRoutes from './routes/auth.routes.js';
+import AuthRoutes from './routes/auth.routes.js'
+import WorkerRoutes from './routes/worker.routes.js'
+
 import { errorHandler, notFound } from './middlewares/errHandler.js';
+import { swaggerSpec } from './config/swagger.js';
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,7 +37,11 @@ app.get('/health', (req, res) => {
 });
 
 
+app.get('/api-docs.json', (req, res) => res.json(swaggerSpec));
+app.use('/api-docs', helmet({ contentSecurityPolicy: false }), swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 app.use('/api/auth', AuthRoutes);
+app.use('/api/workers',  WorkerRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
