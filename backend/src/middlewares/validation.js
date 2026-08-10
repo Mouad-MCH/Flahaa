@@ -1,75 +1,76 @@
-import { ZodError } from "zod";
+    import { ZodError } from "zod";
 
 
-export const validateBody = (schema) => {
-    return (req, res, next) => {
-        try {
+    export const validateBody = (schema) => {
+        return (req, res, next) => {
+            try {
 
-            const validateData = schema.parse(req.body);
-            req.body = validateData;
+                const validateData = schema.parse(req.body);
+                req.body = validateData;
 
-            next()
+                next()
 
-        }catch(error) {
-            if(error instanceof ZodError) {
-                return res.status(400).json({
-                    error: 'validation failed',
-                    details: error.issues.map(err => ({
-                        field: err.path.join('.'),
-                        message: err.message
-                    }))
-                })
+            }catch(error) {
+                if(error instanceof ZodError) {
+                    return res.status(400).json({
+                        error: 'validation failed',
+                        details: error.issues.map(err => ({
+                            field: err.path.join('.'),
+                            message: err.message
+                        }))
+                    })
+                }
+
+                next(error)
             }
-
-            next(error)
         }
     }
-}
 
-export const validateParams = (schema) => {
-    return (req, res, next) => {
-        try {
+    export const validateParams = (schema) => {
+        return (req, res, next) => {
+            try {
 
-            schema.parse(req.params);
+                const validatedData = schema.parse(req.params);
+                req.params = validatedData; 
+                next()
 
-            next()
+            }catch(error) {
+                if(error instanceof ZodError) {
+                    return res.status(400).json({
+                        error: 'Invalid parameters',
+                        details: error.issues.map(err => ({
+                            field: err.path.join('.'),
+                            message: err.message
+                        }))
+                    })
+                }
 
-        }catch(error) {
-            if(error instanceof ZodError) {
-                return res.status(400).json({
-                    error: 'Invalid parameters',
-                    details: error.issues.map(err => ({
-                        field: err.path.join('.'),
-                        message: err.message
-                    }))
-                })
+                next(error)
             }
-
-            next(error)
         }
     }
-}
 
-export const validateQuery = (schema) => {
-    return (req, res, next) => {
-        try {
+    export const validateQuery = (schema) => {
+        return (req, res, next) => {
+            try {
 
-            schema.parse(req.query);
+                const validatedData = schema.parse(req.query);
+                req.validatedQuery = validatedData;
 
-            next()
+                next()
 
-        }catch(error) {
-            if(error instanceof ZodError) {
-                return res.status(400).json({
-                    error: 'Invalid query parameters',
-                    details: error.issues.map(err => ({
-                        field: err.path.join('.'),
-                        message: err.message
-                    }))
-                })
+            }catch(error) {
+                if(error instanceof ZodError) {
+                    return res.status(400).json({
+                        error: 'Invalid query parameters',
+                        details: error.issues.map(err => ({
+                            field: err.path.join('.'),
+                            message: err.message
+                        }))
+                    })
+                }
+
+                next(error)
             }
-
-            next(error)
         }
     }
-}
