@@ -55,7 +55,12 @@
             try {
 
                 const validatedData = schema.parse(req.query);
-                req.validatedQuery = validatedData;
+                Object.defineProperty(req, 'query', {
+                    value: validatedData,
+                    writable: true,
+                    configurable: true,
+                    enumerable: true
+                });
 
                 next()
 

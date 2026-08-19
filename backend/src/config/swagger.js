@@ -132,6 +132,64 @@ const definition = {
           avatar: { type: 'string', format: 'binary', description: 'Image file (jpeg, jpg, png, webp) up to 5MB' },
         },
       },
+      Attendance: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '664f1c2e5b3c2a0012a3b111' },
+          worker_id: { type: 'string', example: '664f1c2e5b3c2a0012a3b789' },
+          farm_id: { type: 'string' },
+          date: { type: 'string', format: 'date-time' },
+          status: { type: 'string', enum: ['present', 'absent', 'excused'], example: 'present' },
+          check_in: { type: 'string', format: 'date-time', nullable: true },
+          check_out: { type: 'string', format: 'date-time', nullable: true },
+          recorded_by: { type: 'string', example: '664f1c2e5b3c2a0012a3b456' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      AttendanceInput: {
+        type: 'object',
+        required: ['worker_id', 'date'],
+        properties: {
+          worker_id: { type: 'string', example: '664f1c2e5b3c2a0012a3b789' },
+          date: { type: 'string', example: '2026-08-18' },
+          status: { type: 'string', enum: ['present', 'absent', 'excused'], default: 'present' },
+          check_in: { type: 'string', format: 'date-time', example: '2026-08-18T07:00:00Z' },
+          check_out: { type: 'string', format: 'date-time', example: '2026-08-18T16:00:00Z' },
+        },
+      },
+      BulkAttendanceInput: {
+        type: 'object',
+        required: ['date', 'records'],
+        properties: {
+          date: { type: 'string', example: '2026-08-18' },
+          records: {
+            type: 'array',
+            minItems: 1,
+            items: {
+              type: 'object',
+              required: ['worker_id'],
+              properties: {
+                worker_id: { type: 'string', example: '664f1c2e5b3c2a0012a3b789' },
+                status: { type: 'string', enum: ['present', 'absent', 'excused'], default: 'present' },
+                check_in: { type: 'string', format: 'date-time' },
+                check_out: { type: 'string', format: 'date-time' },
+              },
+            },
+          },
+        },
+      },
+      MonthlyAttendanceSummary: {
+        type: 'object',
+        properties: {
+          year: { type: 'integer', example: 2026 },
+          month: { type: 'integer', example: 8 },
+          present: { type: 'integer', example: 20 },
+          absent: { type: 'integer', example: 2 },
+          excused: { type: 'integer', example: 1 },
+          total: { type: 'integer', example: 23 },
+        },
+      },
     },
     responses: {
       Unauthorized: {

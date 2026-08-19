@@ -9,6 +9,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import AuthRoutes from './routes/auth.routes.js'
 import WorkerRoutes from './routes/worker.routes.js'
+import AttendanceRoutes from './routes/attendance.routes.js'
 
 import { errorHandler, notFound } from './middlewares/errHandler.js';
 import { swaggerSpec } from './config/swagger.js';
@@ -42,6 +43,7 @@ app.use('/api-docs', helmet({ contentSecurityPolicy: false }), swaggerUi.serve, 
 
 app.use('/api/auth', AuthRoutes);
 app.use('/api/workers',  WorkerRoutes);
+app.use('/api/attendance', AttendanceRoutes)
 
 app.use(notFound);
 app.use(errorHandler);
