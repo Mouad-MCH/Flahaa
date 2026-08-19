@@ -161,16 +161,17 @@ describe('bulkCreateAttendanceService', () => {
     );
 
     expect(Attendance.findOneAndUpdate).toHaveBeenCalledWith(
-      { worker_id: 'w1', date: new Date('2026-08-18T00:00:00.000Z') },
-      expect.objectContaining({
-        worker_id: 'w1',
-        farm_id: farmId,
-        date: new Date('2026-08-18T00:00:00.000Z'),
-        status: 'present',
-        check_in: undefined,
-        check_out: undefined,
-        recorded_by: 'user-1',
-      }),
+      { worker_id: 'w1', farm_id: farmId, date: new Date('2026-08-18T00:00:00.000Z') },
+      {
+        $set: {
+          worker_id: 'w1',
+          farm_id: farmId,
+          date: new Date('2026-08-18T00:00:00.000Z'),
+          status: 'present',
+          recorded_by: 'user-1',
+        },
+        $unset: { check_in: "", check_out: "" },
+      },
       { upsert: true, new: true, runValidators: true }
     );
     expect(result.recorded).toBe(1);
@@ -210,7 +211,7 @@ describe('bulkCreateAttendanceService', () => {
 
     expect(Attendance.findOneAndUpdate).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ status: 'absent' }),
+      expect.objectContaining({ $set: expect.objectContaining({ status: 'absent' }) }),
       expect.anything()
     );
     expect(result.recorded).toBe(1);
@@ -244,7 +245,7 @@ describe('getAttendanceByDateService', () => {
     expect(result.records[0].worker_id.name).toBe('Amy');
     expect(result.records[1].worker_id.name).toBe('Zed');
     expect(result.total_unrecorded).toBe(1);
-    expect(result.unrecorded_works).toEqual([{ _id: 'w3', name: 'Bo' }]);
+    expect(result.unrecorded_workers).toEqual([{ _id: 'w3', name: 'Bo' }]);
   });
 
   it('scopes the active-workers lookup to the farm', async () => {

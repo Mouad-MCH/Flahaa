@@ -294,7 +294,7 @@ describe("Attendance routes", () => {
       expect(res.status).toBe(200);
       expect(res.body.data.total_recorded).toBe(1);
       expect(res.body.data.total_unrecorded).toBe(1);
-      expect(res.body.data.unrecorded_works[0]._id).toBe(String(unrecordedWorker._id));
+      expect(res.body.data.unrecorded_workers[0]._id).toBe(String(unrecordedWorker._id));
     });
 
     it("returns 400 when the date query param is missing", async () => {
@@ -327,7 +327,7 @@ describe("Attendance routes", () => {
       await request(app)
         .post(`/api/attendance?farm_id=${farm._id}`)
         .set("Authorization", `Bearer ${token}`)
-        .send({ worker_id: String(worker._id), date: new Date().toISOString(), status: "present" });
+        .send({ worker_id: String(worker._id), date: new Date().toISOString().slice(0, 10), status: "present" });
 
       const res = await request(app)
         .get(`/api/attendance/summary?farm_id=${farm._id}&months=3`)

@@ -24,15 +24,25 @@ export const createAttendanceService = async (farm_id, data, userId) => {
         throw error;
     }
 
-    const attendance = await Attendance.create({
-        worker_id,
-        farm_id,
-        date: attendanceDate,
-        status,
-        check_in: check_in ? new Date(check_in) : undefined,
-        check_out: check_out ? new Date(check_out) : undefined,
-        recorded_by: userId,
-    })
+    let attendance;
+    try {
+        attendance = await Attendance.create({
+            worker_id,
+            farm_id,
+            date: attendanceDate,
+            status,
+            check_in: check_in ? new Date(check_in) : undefined,
+            check_out: check_out ? new Date(check_out) : undefined,
+            recorded_by: userId,
+        })
+    } catch(err) {
+        if(err.code === 11000) {
+            const error = new Error("Attendance already recorded for this worker on this date");
+            error.statusCode = 400;
+            throw error;
+        }
+        throw err;
+    }
 
     return attendance
 }
@@ -64,19 +74,36 @@ export const bulkCreateAttendanceService = async (farm_id, data, userId) => {
                 continue;
             }
 
+            const setFields = {
+                worker_id: record.worker_id,
+                farm_id,
+                date: attendanceDate,
+                status: record.status || 'present',
+                recorded_by: userId,
+            };
+            const unsetFields = {};
+
+            if (record.check_in) {
+                setFields.check_in = new Date(record.check_in);
+            } else {
+                unsetFields.check_in = "";
+            }
+
+            if (record.check_out) {
+                setFields.check_out = new Date(record.check_out);
+            } else {
+                unsetFields.check_out = "";
+            }
+
             const attendance = await Attendance.findOneAndUpdate(
-                {
-                    worker_id: record.worker_id,
-                    date: attendanceDate,
-                },
                 {
                     worker_id: record.worker_id,
                     farm_id,
                     date: attendanceDate,
-                    status: record.status || 'present',
-                    check_in: record.check_in ? new Date(record.check_in) : undefined,
-                    check_out: record.check_out ? new Date(record.check_out) : undefined,
-                    recorded_by: userId,
+                },
+                {
+                    $set: setFields,
+                    $unset: unsetFields,
                 },
                 {
                     upsert: true,
@@ -135,7 +162,7 @@ export const getAttendanceByDateService = async (farm_id, query) => {
         total_recorded: records.length,
         total_unrecorded: unrecordedWorkers.length,
         records,
-        unrecorded_works: unrecordedWorkers
+        unrecorded_workers: unrecordedWorkers
     }
 
 }
@@ -147,17 +174,15 @@ export const getWorkerAttendanceService = async (farm_id, worker_id, { month, ye
         worker_id: new mongoose.Types.ObjectId(worker_id),
     };
 
-    let startDate, endDate;
-
    if(month && year) {
-    startDate = new Date(Number(year), Number(month) - 1, 1);
-    endDate = new Date(Number(year), Number(month), 0, 23, 59, 59)
-   };
+    const startDate = new Date(Date.UTC(Number(year), Number(month) - 1, 1));
+    const endDate = new Date(Date.UTC(Number(year), Number(month), 1));
 
-   match.date = {
-    $gte: startDate,
-    $lt: endDate,
-   };
+    match.date = {
+        $gte: startDate,
+        $lt: endDate,
+    };
+   }
 
    const [result] = await Attendance.aggregate([
     {
@@ -241,10 +266,10 @@ export const getWorkerAttendanceService = async (farm_id, worker_id, { month, ye
 }
 
 export const getMonthlySummaryService = async (farm_id, months) => {
-  months = Math.min(months || 6, 12);
+  const monthsCount = Math.min(months || 6, 12);
 
   const now = new Date();
-  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (months - 1), 1));
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (monthsCount - 1), 1));
 
   const results = await Attendance.aggregate([
     { $match: { farm_id, date: { $gte: start } } },
@@ -308,7 +333,7 @@ export const getMonthlySummaryService = async (farm_id, months) => {
 
   const buckets = [];
 
-  for(let i = months -1; i>= 0; i--) {
+  for(let i = monthsCount -1; i>= 0; i--) {
     const date = new Date(
        Date.UTC(
         now.getUTCFullYear(),

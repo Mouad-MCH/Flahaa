@@ -106,7 +106,7 @@ router.use(resolveAdminFarm)
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/Attendance'
- *                     unrecorded_works:
+ *                     unrecorded_workers:
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/Worker'

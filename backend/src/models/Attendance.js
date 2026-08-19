@@ -41,7 +41,7 @@ const AttendanceSchema = new mongoose.Schema({
   {timestamps: true}
 );
 
-AttendanceSchema.index({ farm_id: 1, worker_id: 1, date: 1 }, { unique: 1 });
+AttendanceSchema.index({ farm_id: 1, worker_id: 1, date: 1 }, { unique: true });
 
 const Attendance = mongoose.model('Attendance', AttendanceSchema);
 
