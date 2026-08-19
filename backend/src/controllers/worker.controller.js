@@ -20,7 +20,7 @@ export const createWorkerController = async (req, res, next) => {
 
 export const listWorkersController = async (req, res, next) => {
     try {
-        const workers = await listWorkersService(req.scopedFarmId, req.validatedQuery);
+        const workers = await listWorkersService(req.scopedFarmId, req.query);
 
         res.status(200).json({
             status: true,
