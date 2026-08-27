@@ -190,6 +190,101 @@ const definition = {
           total: { type: 'integer', example: 23 },
         },
       },
+      Assignment: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '664f1c2e5b3c2a0012a3b222' },
+          worker_id: {
+            oneOf: [
+              { type: 'string' },
+              { $ref: '#/components/schemas/Worker' },
+            ],
+            example: '664f1c2e5b3c2a0012a3b789',
+          },
+          status: { type: 'string', enum: ['pending', 'in_progress', 'done'], example: 'pending' },
+          rating: { type: 'integer', nullable: true, minimum: 1, maximum: 5, example: null },
+          note: { type: 'string', maxLength: 500, nullable: true },
+          completed_at: { type: 'string', format: 'date-time', nullable: true },
+        },
+      },
+      Task: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '664f1c2e5b3c2a0012a3b333' },
+          farm_id: { type: 'string' },
+          assigned_by: {
+            oneOf: [
+              { type: 'string' },
+              { type: 'object', properties: { _id: { type: 'string' }, name: { type: 'string' } } },
+            ],
+          },
+          title: { type: 'string', example: 'Irrigate north field' },
+          description: { type: 'string', example: 'Run drip irrigation for 2 hours' },
+          date: { type: 'string', format: 'date-time' },
+          status: { type: 'string', enum: ['pending', 'in_progress', 'done'], example: 'pending' },
+          assignments: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Assignment' },
+          },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      MyTask: {
+        allOf: [
+          { $ref: '#/components/schemas/Task' },
+          {
+            type: 'object',
+            properties: {
+              my_assignment: { $ref: '#/components/schemas/Assignment' },
+            },
+          },
+        ],
+      },
+      TaskInput: {
+        type: 'object',
+        required: ['worker_ids', 'title', 'date'],
+        properties: {
+          worker_ids: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 50,
+            items: { type: 'string' },
+            example: ['664f1c2e5b3c2a0012a3b789'],
+          },
+          title: { type: 'string', minLength: 2, maxLength: 200, example: 'Irrigate north field' },
+          description: { type: 'string', maxLength: 1000, example: 'Run drip irrigation for 2 hours' },
+          date: { type: 'string', example: '2026-08-25' },
+        },
+      },
+      UpdateTaskStatusInput: {
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: ['pending', 'in_progress', 'done'], example: 'in_progress' },
+        },
+      },
+      AddAssigneesInput: {
+        type: 'object',
+        required: ['worker_ids'],
+        properties: {
+          worker_ids: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 50,
+            items: { type: 'string' },
+            example: ['664f1c2e5b3c2a0012a3b789'],
+          },
+        },
+      },
+      RateAssignmentInput: {
+        type: 'object',
+        required: ['rating'],
+        properties: {
+          rating: { type: 'integer', minimum: 1, maximum: 5, example: 5 },
+          note: { type: 'string', maxLength: 500, example: 'Great work' },
+        },
+      },
     },
     responses: {
       Unauthorized: {
