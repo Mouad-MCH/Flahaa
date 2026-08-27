@@ -5,7 +5,8 @@ import { POPULATE_ASSIGNEE, POPULATE_ASSIGNER } from '../utils/constant.js'
 
 
 export const createTaskService = async (farm_id, user, data) => {
-    const { worker_ids, title, description, date } = data;
+    const { worker_ids: rawWorkerIds, title, description, date } = data;
+    const worker_ids = [...new Set(rawWorkerIds.map(String))];
 
     const workers = await Worker.find({ _id: { $in: worker_ids }, farm_id });
 
@@ -64,7 +65,7 @@ export const getTasksService = async (farm_id, reqQuery) => {
           .skip(skip)
           .sort({
             date: -1,
-            created_at: -1
+            createdAt: -1
           })
           .limit(limit)
           .populate(POPULATE_ASSIGNEE)
@@ -114,7 +115,7 @@ export const getMyTasksService = async (farm_id, worker_id, reqQuery) => {
           .skip(skip)
           .sort({
             date: -1,
-            created_at: -1
+            createdAt: -1
           })
           .limit(limit)
           .populate(POPULATE_ASSIGNEE)
@@ -256,7 +257,8 @@ export const rateAssignmentService = async (farm_id, { id, worker_id }, { rating
 }
 
 export const addAssigneesService = async (farm_id, reqBody, task_id, user) => {
-    const { worker_ids } = reqBody;
+    const { worker_ids: rawWorkerIds } = reqBody;
+    const worker_ids = [...new Set(rawWorkerIds.map(String))];
 
     const task = await Task.findOne({
         _id: task_id,
@@ -316,6 +318,12 @@ export const removeAssigneeService = async (farm_id, reqParams) => {
     });
 
     if(!task) {
+        const error = new Error('Task not found');
+        error.statusCode = 404;
+        throw error;
+    };
+
+    if(!task.assignmentFor(worker_id)) {
         const error = new Error('Task not found');
         error.statusCode = 404;
         throw error;

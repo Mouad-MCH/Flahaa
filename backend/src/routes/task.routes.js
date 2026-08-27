@@ -155,7 +155,12 @@ router.get("/me", roleGuard('worker'), validateQuery(getMyTasksQuerySchema), get
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.patch("/me/:id/status", roleGuard('worker'), updateMyTaskStatusController)
+router.patch("/me/:id/status",
+  roleGuard('worker'),
+  validateParams(addAssigneesParamsSchema),
+  validateBody(updateAssignmentStatusSchema),
+  updateMyTaskStatusController
+)
 
 
 router.use(roleGuard('admin', 'supervisor'))

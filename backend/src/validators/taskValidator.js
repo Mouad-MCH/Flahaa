@@ -13,7 +13,7 @@ export const createTaskSchema = z.object({
        .max(50, 'A task cannot have more than 50 workers'),
     title: z.string().min(2, 'Title must be at least 2 characters').max(200),
     description: z.string().max(1000).optional().or(z.literal('')),
-    date: z.string().min(1, 'Date is required')
+    date: z.iso.date({ message: 'Date is required' })
 })
 
 export const getTasksQuerySchema = z.object({
