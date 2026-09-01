@@ -285,6 +285,54 @@ const definition = {
           note: { type: 'string', maxLength: 500, example: 'Great work' },
         },
       },
+      Payroll: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '664f1c2e5b3c2a0012a3b444' },
+          farm_id: { type: 'string' },
+          worker_id: {
+            oneOf: [
+              { type: 'string' },
+              { $ref: '#/components/schemas/Worker' },
+            ],
+            example: '664f1c2e5b3c2a0012a3b789',
+          },
+          month: { type: 'integer', minimum: 1, maximum: 12, example: 8 },
+          year: { type: 'integer', example: 2026 },
+          working_days: { type: 'integer', example: 22 },
+          daily_rate: { type: 'number', example: 120 },
+          base_salary: { type: 'number', example: 2640 },
+          bonuses: { type: 'number', example: 100 },
+          deductions: { type: 'number', example: 50 },
+          advances_total: { type: 'number', example: 200 },
+          net_salary: { type: 'number', example: 2490 },
+          status: { type: 'string', enum: ['pending', 'paid'], example: 'pending' },
+          paid_at: { type: 'string', format: 'date-time', nullable: true },
+          calculated_at: { type: 'string', format: 'date-time' },
+          notes: { type: 'string', maxLength: 500 },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      CalculatePayrollInput: {
+        type: 'object',
+        required: ['worker_id', 'month', 'year'],
+        properties: {
+          worker_id: { type: 'string', example: '664f1c2e5b3c2a0012a3b789' },
+          month: { type: 'integer', minimum: 1, maximum: 12, example: 8 },
+          year: { type: 'integer', minimum: 2000, maximum: 2100, example: 2026 },
+          bonuses: { type: 'number', minimum: 0, default: 0, example: 100 },
+          deductions: { type: 'number', minimum: 0, default: 0, example: 50 },
+          notes: { type: 'string', maxLength: 500, example: 'Overtime bonus for harvest week' },
+        },
+      },
+      UpdatePayrollStatusInput: {
+        type: 'object',
+        required: ['status'],
+        properties: {
+          status: { type: 'string', enum: ['paid', 'pending'], example: 'paid' },
+        },
+      },
     },
     responses: {
       Unauthorized: {
