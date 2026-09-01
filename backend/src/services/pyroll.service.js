@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Worker from '../models/Worker.js';
 import Attendance from '../models/Attendance.js';
 import Payroll from '../models/Payroll.js';
@@ -7,9 +8,12 @@ import Payroll from '../models/Payroll.js';
 export const calculatePayrollService = async (farm_id, data) => {
     const { worker_id, month, year, bonuses, deductions, notes } = data;
 
+    const workerObjectId = new mongoose.Types.ObjectId(worker_id);
+    const farmObjectId = new mongoose.Types.ObjectId(farm_id);
+
     const worker = await Worker.findOne({
-        _id: worker_id,
-        farm_id
+        _id: workerObjectId,
+        farm_id: farmObjectId
     });
 
     if(!worker) {
@@ -27,8 +31,8 @@ export const calculatePayrollService = async (farm_id, data) => {
     const present = await Attendance.aggregate([
         {
             $match: {
-                worker_id,
-                farm_id,
+                worker_id: workerObjectId,
+                farm_id: farmObjectId,
                 date: {
                     $gte: start,
                     $lt: end,
@@ -59,8 +63,8 @@ export const calculatePayrollService = async (farm_id, data) => {
     const advances_total = await Worker.aggregate([
         {
             $match: {
-                _id: worker_id,
-                farm_id,
+                _id: workerObjectId,
+                farm_id: farmObjectId,
                 advances : {
                     $elemMatch: {
                         date: {
@@ -114,6 +118,7 @@ export const calculatePayrollService = async (farm_id, data) => {
             year,
             working_days: present[0]?.total || 0,
             daily_rate,
+            base_salary,
             bonuses,
             deductions,
             advances_total: advances_total[0]?.total || 0,
@@ -140,10 +145,12 @@ export const getPayrollsService = async (farm_id, reqQuery) => {
 
     const query = { farm_id };
 
+    const workerObjectId = worker_id ? new mongoose.Types.ObjectId(worker_id) : null;
+
     if(month) query.month = month;
     if(year) query.year = year;
     if(status) query.status = status;
-    if(worker_id) query.worker_id = worker_id;
+    if(worker_id) query.worker_id = workerObjectId;
 
     const skip = (page - 1) * limit;
 
@@ -247,7 +254,7 @@ export const updatePayrollStausService = async (farm_id, payrollId, data) => {
     const { status } = data;
 
     const update = { status };
-    if(status === 'paid') update.paid_at = new Date();
+    update.paid_at = status === 'paid' ? new Date() : null;
     
     const payroll = await Payroll.findOneAndUpdate(
         { _id: payrollId, farm_id },

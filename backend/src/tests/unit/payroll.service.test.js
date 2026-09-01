@@ -48,8 +48,9 @@ beforeEach(() => {
 });
 
 describe('calculatePayrollService', () => {
-  const farmId = 'farm-1';
-  const baseData = { worker_id: 'w1', month: 8, year: 2026, bonuses: 100, deductions: 50, notes: 'n' };
+  const farmId = '64d2f1a2b3c4d5e6f7a8b9c0';
+  const workerId = '64d2f1a2b3c4d5e6f7a8b9c1';
+  const baseData = { worker_id: workerId, month: 8, year: 2026, bonuses: 100, deductions: 50, notes: 'n' };
 
   it('throws a 404 when the worker is not found on this farm', async () => {
     Worker.findOne.mockResolvedValueOnce(null);
@@ -63,7 +64,7 @@ describe('calculatePayrollService', () => {
   });
 
   it('computes working_days, base_salary and net_salary from attendance, rate and advances', async () => {
-    Worker.findOne.mockResolvedValueOnce({ _id: 'w1', daily_rate: 100 });
+    Worker.findOne.mockResolvedValueOnce({ _id: workerId, daily_rate: 100 });
     Attendance.aggregate.mockResolvedValueOnce([{ _id: null, total: 20 }]);
     Worker.aggregate.mockResolvedValueOnce([{ _id: null, total: 150 }]);
     const updated = { _id: 'p1', net_salary: 1900 };
@@ -72,14 +73,15 @@ describe('calculatePayrollService', () => {
     const result = await calculatePayrollService(farmId, baseData);
 
     expect(Payroll.findOneAndUpdate).toHaveBeenCalledWith(
-      { worker_id: 'w1', month: 8, year: 2026 },
+      { worker_id: workerId, month: 8, year: 2026 },
       expect.objectContaining({
         farm_id: farmId,
-        worker_id: 'w1',
+        worker_id: workerId,
         month: 8,
         year: 2026,
         working_days: 20,
         daily_rate: 100,
+        base_salary: 2000, // 100 * 20
         bonuses: 100,
         deductions: 50,
         advances_total: 150,
@@ -93,7 +95,7 @@ describe('calculatePayrollService', () => {
   });
 
   it('defaults working_days and advances_total to 0 when the aggregations find nothing', async () => {
-    Worker.findOne.mockResolvedValueOnce({ _id: 'w1', daily_rate: 100 });
+    Worker.findOne.mockResolvedValueOnce({ _id: workerId, daily_rate: 100 });
     Attendance.aggregate.mockResolvedValueOnce([]);
     Worker.aggregate.mockResolvedValueOnce([]);
     Payroll.findOneAndUpdate.mockReturnValueOnce(populateMock({ _id: 'p1' }));
@@ -108,7 +110,7 @@ describe('calculatePayrollService', () => {
   });
 
   it('floors net_salary at 0 when deductions and advances exceed earnings', async () => {
-    Worker.findOne.mockResolvedValueOnce({ _id: 'w1', daily_rate: 10 });
+    Worker.findOne.mockResolvedValueOnce({ _id: workerId, daily_rate: 10 });
     Attendance.aggregate.mockResolvedValueOnce([{ _id: null, total: 1 }]); // base_salary = 10
     Worker.aggregate.mockResolvedValueOnce([{ _id: null, total: 100 }]); // advances_total = 100
     Payroll.findOneAndUpdate.mockReturnValueOnce(populateMock({ _id: 'p1' }));
@@ -123,7 +125,7 @@ describe('calculatePayrollService', () => {
   });
 
   it('populates worker details on the upserted payroll', async () => {
-    Worker.findOne.mockResolvedValueOnce({ _id: 'w1', daily_rate: 100 });
+    Worker.findOne.mockResolvedValueOnce({ _id: workerId, daily_rate: 100 });
     Attendance.aggregate.mockResolvedValueOnce([]);
     Worker.aggregate.mockResolvedValueOnce([]);
     const query = populateMock({ _id: 'p1' });
@@ -247,14 +249,14 @@ describe('updatePayrollStausService', () => {
     );
   });
 
-  it('does not set paid_at for non-paid statuses', async () => {
+  it('clears paid_at for non-paid statuses', async () => {
     Payroll.findOneAndUpdate.mockReturnValueOnce(populateMock({ _id: 'p1', status: 'pending' }));
 
     await updatePayrollStausService(farmId, 'p1', { status: 'pending' });
 
     expect(Payroll.findOneAndUpdate).toHaveBeenCalledWith(
       { _id: 'p1', farm_id: farmId },
-      { status: 'pending' },
+      { status: 'pending', paid_at: null },
       { new: true, runValidators: true }
     );
   });

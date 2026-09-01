@@ -38,7 +38,7 @@ router.use(authGuard);
  *         schema:
  *           type: integer
  *           minimum: 1
- *           default: 0
+ *           default: 1
  *       - in: query
  *         name: limit
  *         schema:
@@ -184,7 +184,7 @@ router.post(
  *         schema:
  *           type: integer
  *           minimum: 1
- *           default: 0
+ *           default: 1
  *       - in: query
  *         name: limit
  *         schema:

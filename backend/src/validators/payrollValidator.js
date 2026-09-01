@@ -7,7 +7,7 @@ const objectIdSchema = z.string()
 
 
 export const calculatePayrollSchema = z.object({
-  worker_id: z.string().min(1, 'Worker is required'),
+  worker_id: objectIdSchema,
   month: z.number().int().min(1).max(12),
   year: z.number().int().min(2000).max(2100),
   bonuses: z.number().min(0).default(0),
