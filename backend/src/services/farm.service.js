@@ -3,9 +3,9 @@ import Farm from '../models/Farm.js';
 
 
 export const createFarmService = async (farmData, ownerId) => {
-    const { name, address, phone } = farmData;
+    const { name, address } = farmData;
 
-    const farm = await Farm.create({ name, address, phone, owner_id: ownerId });
+    const farm = await Farm.create({ name, address, owner_id: ownerId });
 
     return farm;
 }

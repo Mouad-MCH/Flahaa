@@ -57,7 +57,7 @@ router.post('/', validateBody(createFarmSchema), createFarmController);
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: The admin's farms
+ *         description: The admin's farms. Returns an empty array in `data` if the admin owns no farms.
  *         content:
  *           application/json:
  *             schema:
@@ -74,12 +74,6 @@ router.post('/', validateBody(createFarmSchema), createFarmController);
  *         $ref: '#/components/responses/Unauthorized'
  *       403:
  *         $ref: '#/components/responses/Forbidden'
- *       404:
- *         description: No farms found for the logged-in admin
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
 router.get('/my-farms', getMyFarmsController);
 

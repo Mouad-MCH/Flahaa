@@ -33,6 +33,22 @@ const definition = {
           message: { type: 'string', example: 'Something went wrong' },
         },
       },
+      ValidationErrorResponse: {
+        type: 'object',
+        properties: {
+          error: { type: 'string', example: 'validation failed' },
+          details: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                field: { type: 'string', example: 'name' },
+                message: { type: 'string', example: 'Required' },
+              },
+            },
+          },
+        },
+      },
       User: {
         type: 'object',
         properties: {
@@ -369,7 +385,7 @@ const definition = {
       },
       ValidationError: {
         description: 'Request failed validation',
-        content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } },
       },
     },
   },
