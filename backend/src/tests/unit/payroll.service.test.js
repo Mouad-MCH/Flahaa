@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import mongoose from 'mongoose';
 import Worker from '../../models/Worker.js';
 import Attendance from '../../models/Attendance.js';
 import Payroll from '../../models/Payroll.js';
@@ -139,6 +140,7 @@ describe('calculatePayrollService', () => {
 
 describe('getPayrollsService', () => {
   const farmId = 'farm-1';
+  const workerId = '64d2f1a2b3c4d5e6f7a8b9c1';
 
   it('builds the match query from the optional filters', async () => {
     Payroll.aggregate.mockResolvedValueOnce(facetResult([], []));
@@ -147,7 +149,7 @@ describe('getPayrollsService', () => {
       month: 8,
       year: 2026,
       status: 'paid',
-      worker_id: 'w1',
+      worker_id: workerId,
       page: 1,
       limit: 10,
     });
@@ -158,7 +160,7 @@ describe('getPayrollsService', () => {
       month: 8,
       year: 2026,
       status: 'paid',
-      worker_id: 'w1',
+      worker_id: new mongoose.Types.ObjectId(workerId),
     });
   });
 
