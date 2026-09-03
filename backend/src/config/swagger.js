@@ -81,6 +81,26 @@ const definition = {
           },
         },
       },
+      Farm: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '664f1c2e5b3c2a0012a3b100' },
+          name: { type: 'string', example: 'Green Valley Farm' },
+          address: { type: 'string', example: '12 Rue Atlas, Marrakech' },
+          owner_id: { type: 'string', example: '664f1c2e5b3c2a0012a3b456' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      FarmInput: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', minLength: 2, maxLength: 100, example: 'Green Valley Farm' },
+          address: { type: 'string', example: '12 Rue Atlas, Marrakech' },
+          phone: { type: 'string', example: '0600000000' },
+        },
+      },
       Worker: {
         type: 'object',
         properties: {
