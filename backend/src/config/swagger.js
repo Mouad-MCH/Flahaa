@@ -33,6 +33,22 @@ const definition = {
           message: { type: 'string', example: 'Something went wrong' },
         },
       },
+      ValidationErrorResponse: {
+        type: 'object',
+        properties: {
+          error: { type: 'string', example: 'validation failed' },
+          details: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                field: { type: 'string', example: 'name' },
+                message: { type: 'string', example: 'Required' },
+              },
+            },
+          },
+        },
+      },
       User: {
         type: 'object',
         properties: {
@@ -79,6 +95,26 @@ const definition = {
               user: { $ref: '#/components/schemas/User' },
             },
           },
+        },
+      },
+      Farm: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '664f1c2e5b3c2a0012a3b100' },
+          name: { type: 'string', example: 'Green Valley Farm' },
+          address: { type: 'string', example: '12 Rue Atlas, Marrakech' },
+          owner_id: { type: 'string', example: '664f1c2e5b3c2a0012a3b456' },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      FarmInput: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string', minLength: 2, maxLength: 100, example: 'Green Valley Farm' },
+          address: { type: 'string', example: '12 Rue Atlas, Marrakech' },
+          phone: { type: 'string', example: '0600000000' },
         },
       },
       Worker: {
@@ -349,7 +385,7 @@ const definition = {
       },
       ValidationError: {
         description: 'Request failed validation',
-        content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+        content: { 'application/json': { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } },
       },
     },
   },
