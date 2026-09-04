@@ -32,6 +32,13 @@ const UserSchema = new mongoose.Schema({
         enum: ["admin", "supervisor", "worker"],
         default: "worker"
     },
+
+    status: {
+        type: String,
+        enum: ["active", "inactive"],
+        default: "active"
+    },
+
     farm_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Farm',

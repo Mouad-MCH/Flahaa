@@ -369,6 +369,74 @@ const definition = {
           status: { type: 'string', enum: ['paid', 'pending'], example: 'paid' },
         },
       },
+      Supervisor: {
+        type: 'object',
+        properties: {
+          _id: { type: 'string', example: '664f1c2e5b3c2a0012a3b555' },
+          name: { type: 'string', example: 'Karim Alaoui' },
+          email: { type: 'string', format: 'email', example: 'karim@example.com' },
+          phone: { type: 'string', example: '0600000000' },
+          role: { type: 'string', enum: ['supervisor'], example: 'supervisor' },
+          status: { type: 'string', enum: ['active', 'inactive'], example: 'active' },
+          farm_id: { type: 'string', example: '664f1c2e5b3c2a0012a3b100' },
+          worker_id: { type: 'string', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      CreateSupervisorInput: {
+        type: 'object',
+        required: ['name', 'email'],
+        properties: {
+          name: { type: 'string', minLength: 1, example: 'Karim Alaoui' },
+          email: { type: 'string', format: 'email', example: 'karim@example.com' },
+          phone: { type: 'string', example: '0600000000' },
+        },
+      },
+      CreateSupervisorResponse: {
+        type: 'object',
+        properties: {
+          status: { type: 'boolean', example: true },
+          data: {
+            type: 'object',
+            properties: {
+              supervisor: { $ref: '#/components/schemas/Supervisor' },
+              tempPassword: {
+                type: 'string',
+                description: 'Auto-generated temporary password for the new supervisor account',
+                example: 'Xk9#mPq2',
+              },
+            },
+          },
+        },
+      },
+      UpdateSupervisorInput: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', minLength: 1, example: 'Karim Alaoui' },
+          email: { type: 'string', format: 'email', example: 'karim@example.com' },
+          phone: { type: 'string', example: '0600000000' },
+          status: { type: 'string', enum: ['active', 'inactive'], example: 'active' },
+        },
+      },
+      SupervisorWorkerStats: {
+        type: 'object',
+        properties: {
+          total: { type: 'integer', example: 8 },
+          active: { type: 'integer', example: 6 },
+        },
+      },
+      SupervisorDetail: {
+        type: 'object',
+        properties: {
+          supervisor: { $ref: '#/components/schemas/Supervisor' },
+          workerStats: { $ref: '#/components/schemas/SupervisorWorkerStats' },
+          workers: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/Worker' },
+          },
+        },
+      },
     },
     responses: {
       Unauthorized: {

@@ -13,6 +13,7 @@ import AttendanceRoutes from './routes/attendance.routes.js'
 import TasksRouter from './routes/task.routes.js'
 import PayrollRouter from './routes/payroll.routes.js'
 import FarmRoutes from './routes/farm.routes.js'
+import UserRoutes from './routes/user.routes.js'
 
 import { errorHandler, notFound } from './middlewares/errHandler.js';
 import { swaggerSpec } from './config/swagger.js';
@@ -50,6 +51,7 @@ app.use('/api/attendance', AttendanceRoutes);
 app.use('/api/tasks', TasksRouter);
 app.use('/api/payrolls', PayrollRouter);
 app.use('/api/farms', FarmRoutes);
+app.use('/api/users', UserRoutes);
 
 
 app.use(notFound);
