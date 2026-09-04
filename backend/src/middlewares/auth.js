@@ -32,6 +32,14 @@ export const authGuard = async (req, res, next) => {
             })
         }
 
+        if(req.user.status === 'inactive') {
+            return res.status(401).json({
+                status: 'error',
+                statusCode: 401,
+                message: 'This account has been deactivated'
+            })
+        }
+
         next()
 
     } catch(error) {
