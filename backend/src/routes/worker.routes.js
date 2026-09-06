@@ -19,15 +19,16 @@ router.use(resolveAdminFarm);
  *   post:
  *     tags: [Workers]
  *     summary: Create a worker
- *     description: Creates a worker within a farm. Admins must pass farm_id as a query parameter; supervisors are scoped to their own farm automatically.
+ *     description: Creates a worker within a farm. farm_id must be passed as a query parameter for both admins and supervisors.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: farm_id
+ *         required: true
  *         schema:
  *           type: string
- *         description: Required for admins, identifies the target farm.
+ *         description: Identifies the target farm. Required for all requests.
  *     requestBody:
  *       required: true
  *       content:
@@ -74,15 +75,16 @@ router.use(resolveAdminFarm);
  *   get:
  *     tags: [Workers]
  *     summary: List workers
- *     description: Lists workers for a farm, with optional filtering and pagination. Admins must pass farm_id; supervisors are scoped to their own farm automatically.
+ *     description: Lists workers for a farm, with optional filtering and pagination. farm_id must be passed as a query parameter for both admins and supervisors.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: farm_id
+ *         required: true
  *         schema:
  *           type: string
- *         description: Required for admins, identifies the target farm.
+ *         description: Identifies the target farm. Required for all requests.
  *       - in: query
  *         name: status
  *         schema:
@@ -153,6 +155,12 @@ router.route('/')
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: farm_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Required for admins, identifies the target farm.
  *     responses:
  *       200:
  *         description: Worker found
@@ -189,6 +197,12 @@ router.route('/')
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: farm_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Required for admins, identifies the target farm.
  *     requestBody:
  *       required: true
  *       content:
@@ -233,6 +247,12 @@ router.route('/')
  *         required: true
  *         schema:
  *           type: string
+ *       - in: query
+ *         name: farm_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Required for admins, identifies the target farm.
  *     responses:
  *       200:
  *         description: Worker deleted
