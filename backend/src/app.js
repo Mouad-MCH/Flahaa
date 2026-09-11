@@ -14,9 +14,11 @@ import TasksRouter from './routes/task.routes.js'
 import PayrollRouter from './routes/payroll.routes.js'
 import FarmRoutes from './routes/farm.routes.js'
 import UserRoutes from './routes/user.routes.js'
+import RegistrationTokenRoutes from './routes/registrationToken.routes.js'
 
 import { errorHandler, notFound } from './middlewares/errHandler.js';
 import { swaggerSpec } from './config/swagger.js';
+import { ENV } from './config/env.js';
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -25,7 +27,10 @@ const app = express();
 
 app.use(helmet());
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: ENV.CORS_ORIGIN,
+  credentials: true,
+}));
 app.use(morgan('dev'))
 app.use(express.urlencoded({ extended: true }));
 
@@ -52,6 +57,7 @@ app.use('/api/tasks', TasksRouter);
 app.use('/api/payrolls', PayrollRouter);
 app.use('/api/farms', FarmRoutes);
 app.use('/api/users', UserRoutes);
+app.use('/api/registration-tokens', RegistrationTokenRoutes)
 
 
 app.use(notFound);

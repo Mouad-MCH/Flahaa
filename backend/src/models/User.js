@@ -43,7 +43,7 @@ const UserSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Farm',
         default: null,
-        requered: [function () { return this.role !== 'admin' }, 'Farm ID is required for non-admin users']
+        required: [function () { return this.role !== 'admin' }, 'Farm ID is required for non-admin users']
     },
 
     worker_id: {
@@ -53,6 +53,16 @@ const UserSchema = new mongoose.Schema({
     },
 
 }, { timestamps: true });
+
+UserSchema.index(
+    { worker_id: 1 },
+    {
+        unique: true,
+        partialFilterExpression: {
+            worker_id: { $type: "objectId" }
+        }
+    }
+)
 
 const User = mongoose.model('User', UserSchema);
 

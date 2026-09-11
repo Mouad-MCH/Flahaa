@@ -1,6 +1,5 @@
 import {
   getSupervisorsService,
-  createSupervisorService,
   getSupervisorByIdService,
   deleteSupervisorService,
   updateSupervisorService,
@@ -13,25 +12,6 @@ export const getSupervisorsController = async (req, res, next) => {
     res.status(200).json({
       status: true,
       data: supervisors,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const createSupervisorController = async (req, res, next) => {
-  try {
-    const { supervisor, tempPassword } = await createSupervisorService(
-      req.body,
-      req.scopedFarmId,
-    );
-
-    res.status(201).json({
-      status: true,
-      data: {
-        supervisor,
-        tempPassword,
-      },
     });
   } catch (error) {
     next(error);

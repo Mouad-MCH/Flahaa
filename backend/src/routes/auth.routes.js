@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginController, registerController, logout } from '../controllers/auth.controller.js';
+import { loginController, registerController } from '../controllers/auth.controller.js';
 import { validateBody } from '../middlewares/validation.js';
 import { loginSchema, registerSchema } from '../validators/authValidator.js';
 
@@ -68,31 +68,6 @@ router.post('/register', validateBody(registerSchema), registerController);
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/login', validateBody(loginSchema), loginController);
-
-/**
- * @openapi
- * /auth/logout:
- *   post:
- *     tags: [Auth]
- *     summary: Log out the current user
- *     description: Clears the refresh token cookie.
- *     security: []
- *     responses:
- *       200:
- *         description: Logged out successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: Logged out successfully
- */
-router.post('/logout', logout)
 
 
 
