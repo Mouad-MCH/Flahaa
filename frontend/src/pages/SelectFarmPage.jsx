@@ -1,14 +1,30 @@
 import { useAuthStore } from "../store/authStore";
 import { useSelectFarmPage } from '../hooks/useSelectFarmPage.js'
 import FarmCart from "../components/ui/FarmCart.jsx";
-import { Button } from "../components/ui/ui.jsx";
+import { Button, PageLoader } from "../components/ui/ui.jsx";
 import { PlusIcon } from "lucide-react";
 
 const SelectFarmPage = () => {
   const user = useAuthStore((state) => state.user);
 
-  const {farms, isLoading, isError, selectFarm} = useSelectFarmPage()
-  
+  const {farms, isLoading, isError, selectFarm, refetch} = useSelectFarmPage()
+
+  if (isLoading) {
+    return (
+      <PageLoader />
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center gap-4 p-20">
+        <p className="text-lg font-medium">Failed to load farms.</p>
+        <Button onClick={() => refetch()} className="px-4 h-10 cursor-pointer">
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">

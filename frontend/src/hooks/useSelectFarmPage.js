@@ -8,7 +8,7 @@ export function useSelectFarmPage() {
     const navigate = useNavigate();
     const { activeFarmId, setActiveFarmId } = useFarmStore();
 
-    const { data: farms = [], isLoading, isError } = useQuery({
+    const { data: farms = [], isLoading, isError, refetch } = useQuery({
         queryKey: ["farms", "mine"],
         queryFn: getMyFarms,
     });
@@ -32,5 +32,5 @@ export function useSelectFarmPage() {
         navigate("/dashboard", { replace: true });
     };
 
-    return { farms, isLoading, isError, selectFarm };
+    return { farms, isLoading, isError, selectFarm, refetch };
 }

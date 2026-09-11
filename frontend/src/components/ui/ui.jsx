@@ -34,11 +34,11 @@ export function TractorLoader({ size = 44, className = "" }) {
   );
 }
 
-export function PageLoader({ title = "Loading...", subtitle }) {
+export function PageLoader({ title = "", subtitle }) {
   return (
-    <main className="w-full min-h-screen flex items-center justify-center bg-paper p-4">
-      <div className="bg-card rounded-card shadow-lift p-10 max-w-md w-full text-center">
-        <TractorLoader className="mb-6" />
+    <main className="w-full min-h-screen flex items-center justify-center p-4">
+      <div className="rounded-card  p-10 max-w-md w-full text-center">
+        <TractorLoader className="mb-1" />
 
         <div className="tractor-loader-road w-32 mx-auto mb-6" />
 
