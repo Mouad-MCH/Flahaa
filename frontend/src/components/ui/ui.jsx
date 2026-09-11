@@ -34,7 +34,7 @@ export function TractorLoader({ size = 44, className = "" }) {
   );
 }
 
-export function PageLoader({ title = "", subtitle }) {
+export function PageLoader({ title, subtitle }) {
   return (
     <main className="w-full min-h-screen flex items-center justify-center p-4">
       <div className="rounded-card  p-10 max-w-md w-full text-center">
@@ -46,7 +46,7 @@ export function PageLoader({ title = "", subtitle }) {
           className="text-lg font-bold mb-1.5"
           style={{ color: "var(--olive-ink)" }}
         >
-          {title}
+          {title || ""}
         </h1>
         {subtitle && <p className="text-sm text-ink-2">{subtitle}</p>}
       </div>

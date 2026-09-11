@@ -51,11 +51,7 @@ export const useAuthStore = create(
             },
 
             logout: async () => {
-                try {
-                    await api.post('/auth/logout');
-                } finally {
-                    set({ user: null, token: null, isAuthenticated: false, loading: false, error: null });
-                }
+                set({ user: null, token: null, isAuthenticated: false, loading: false, error: null });
                 useFarmStore.getState().clearActiveFarm();
             },
 

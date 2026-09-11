@@ -20,8 +20,6 @@ api.interceptors.request.use(
         const routesWithoutFarmScope = [
             '/auth/login',
             '/auth/register',
-            '/auth/refresh',
-            '/auth/logout',
             '/registration-tokens/validate',
         ];
 

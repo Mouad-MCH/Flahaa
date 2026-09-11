@@ -1,4 +1,3 @@
-import { ENV } from "../config/env.js";
 import { loginService, registerService } from "../services/auth.service.js";
 import { generateToken } from "../utils/token.js";
 
@@ -58,24 +57,6 @@ export const loginController = async (req, res, next) => {
         })
         
 
-
-    } catch(error) {
-        next(error)
-    }
-}
-
-export const logout = async (req, res, next) => {
-    try {
-        res.clearCookie('refreshToken', {
-            httpOnly: true,
-            secure: ENV.NODE_ENV === 'production',
-            sameSite: 'Strict'
-        })
-
-        res.status(200).json({
-            status: 'success',
-            message: 'Logged out successfully'
-        });
 
     } catch(error) {
         next(error)
