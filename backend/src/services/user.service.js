@@ -1,6 +1,5 @@
 import User from '../models/User.js';
 import Worker from '../models/Worker.js';
-import { generateTempPassword, hashPassword } from '../utils/password.js';
 import mongoose from 'mongoose';
 
 
@@ -9,33 +8,6 @@ export const getSupervisorsService = async (farmId) => {
     const supervisors = await User.find({ farm_id: farmId, role: 'supervisor' }).select('-password');
 
     return supervisors;
-}
-
-export const createSupervisorService = async (data, farmId) => {
-    const { name, email, phone } = data;
-
-    const existing = await User.findOne({ email });
-    if (existing) {
-        const error = new Error('A user with this email already exists');
-        error.statusCode = 400;
-        throw error;
-    }
-
-    const tempPassword = generateTempPassword();
-    const hashedPassword = await hashPassword(tempPassword);
-
-    const supervisor = await User.create(
-        { 
-            name, 
-            email, 
-            phone, 
-            password: hashedPassword, 
-            role: 'supervisor', 
-            farm_id: farmId 
-        }
-    );
-
-    return { supervisor, tempPassword };
 }
 
 export const getSupervisorByIdService = async (supervisorId, farmId) => {

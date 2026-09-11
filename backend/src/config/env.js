@@ -45,7 +45,15 @@ const envSchema = z.object({
     CLOUDINARY_API_KEY: z.string().optional(),
     CLOUDINARY_API_SECRET: z.string().optional(),
 
-    LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info')
+    LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+
+    MAILTRAP_HOST: z.string(),
+    MAILTRAP_PORT: z.coerce.number().int().positive(),
+    MAILTRAP_USER: z.string(),
+    MAILTRAP_PASS: z.string(),
+
+    
+    FRONTEND_URL: z.string().url(),
 })
 
 const env = envSchema.safeParse(process.env);

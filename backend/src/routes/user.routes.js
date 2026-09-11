@@ -3,12 +3,11 @@ import { authGuard, roleGuard } from '../middlewares/auth.js';
 import { resolveAdminFarm } from '../middlewares/resolveAdminFarm.js';
 import { 
     getSupervisorsController,
-    createSupervisorController,
     getSupervisorByIdController,
     deleteSupervisorController,
     updateSupervisorController
 } from '../controllers/user.controller.js';
-import { createSupervisorSchema, supervisorIdSchema, updateSupervisorSchema } from '../validators/userValidator.js';
+import { supervisorIdSchema, updateSupervisorSchema } from '../validators/userValidator.js';
 import { validateBody, validateParams } from '../middlewares/validation.js';
 
 
@@ -58,51 +57,6 @@ router.use(resolveAdminFarm);
  */
 router.get('/supervisors', getSupervisorsController);
 
-/**
- * @openapi
- * /users/supervisors:
- *   post:
- *     tags: [Users]
- *     summary: Create a supervisor
- *     description: >
- *       Creates a supervisor account on the admin's farm. A temporary password is
- *       auto-generated and returned once in the response (it is not emailed).
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: farm_id
- *         required: true
- *         schema:
- *           type: string
- *         description: ID of the farm (must be owned by the authenticated admin)
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CreateSupervisorInput'
- *     responses:
- *       201:
- *         description: Supervisor created
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/CreateSupervisorResponse'
- *       400:
- *         description: Validation error, or a user with this email already exists
- *         content:
- *           application/json:
- *             schema:
- *               oneOf:
- *                 - $ref: '#/components/schemas/ValidationErrorResponse'
- *                 - $ref: '#/components/schemas/Error'
- *       401:
- *         $ref: '#/components/responses/Unauthorized'
- *       403:
- *         $ref: '#/components/responses/Forbidden'
- */
-router.post('/supervisors', validateBody(createSupervisorSchema), createSupervisorController);
 
 /**
  * @openapi

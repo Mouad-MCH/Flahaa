@@ -384,32 +384,6 @@ const definition = {
           updatedAt: { type: 'string', format: 'date-time' },
         },
       },
-      CreateSupervisorInput: {
-        type: 'object',
-        required: ['name', 'email'],
-        properties: {
-          name: { type: 'string', minLength: 1, example: 'Karim Alaoui' },
-          email: { type: 'string', format: 'email', example: 'karim@example.com' },
-          phone: { type: 'string', example: '0600000000' },
-        },
-      },
-      CreateSupervisorResponse: {
-        type: 'object',
-        properties: {
-          status: { type: 'boolean', example: true },
-          data: {
-            type: 'object',
-            properties: {
-              supervisor: { $ref: '#/components/schemas/Supervisor' },
-              tempPassword: {
-                type: 'string',
-                description: 'Auto-generated temporary password for the new supervisor account',
-                example: 'Xk9#mPq2',
-              },
-            },
-          },
-        },
-      },
       UpdateSupervisorInput: {
         type: 'object',
         properties: {

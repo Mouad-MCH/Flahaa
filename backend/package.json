@@ -26,6 +26,7 @@
     "mongoose": "^9.9.0",
     "morgan": "^1.11.0",
     "multer": "^2.2.0",
+    "nodemailer": "^10.0.3",
     "pdfkit": "^0.19.1",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
