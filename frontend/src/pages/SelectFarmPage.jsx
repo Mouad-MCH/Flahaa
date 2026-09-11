@@ -27,7 +27,7 @@ const SelectFarmPage = () => {
       <div className="p-5 flex items-center justify-between">
         <div className="w-30 h-6 p-2 flex items-center gap-3  rounded-full bg-green-500/20">
           <span className="w-2 h-2 rounded-full animate-ping transition-animate duration-300 bg-green-600"></span>
-          <h3 className="font-medium">2 farms</h3>
+          <h3 className="font-medium">{farms.length} farms</h3>
         </div>
 
         <Button className="w-30 px-1 h-10 cursor-pointer flex items-center gap-2">

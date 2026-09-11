@@ -1,6 +1,6 @@
 import { ENV } from "../config/env.js";
 import { loginService, registerService } from "../services/auth.service.js";
-import { cookieOptions, generateRefreshToken, generateToken } from "../utils/token.js";
+import { generateToken } from "../utils/token.js";
 
 export const registerController = async (req, res, next) => {
     try {
@@ -8,10 +8,8 @@ export const registerController = async (req, res, next) => {
         const { user, farm } = newUser;
 
         const accessToken = generateToken(user);
-        const refreshToken = generateRefreshToken(user);
         const resolvedFarmName = farm ? farm.name : null;
 
-        res.cookie('refreshToken', refreshToken, cookieOptions);
 
         res.status(201).json({
             status: true,
@@ -39,9 +37,8 @@ export const loginController = async (req, res, next) => {
     try {
 
         const loggedUser = await loginService(req.body);
-        const { user, accessToken, refreshToken, farm } = loggedUser;
+        const { user, accessToken, farm } = loggedUser;
 
-        res.cookie('refreshToken', refreshToken, cookieOptions);
 
         res.status(200).json({
             status: true,

@@ -26,7 +26,7 @@ export const useAuthStore = create(
                     return { success: true };
 
                 } catch(error) {
-                    const message = error.response?.data?.name || 'Registration failed';
+                    const message = error.response?.data?.message || 'Registration failed';
                     set({ loading: false, error: message });
                     return { success: false, error: message }
                 }
@@ -44,21 +44,37 @@ export const useAuthStore = create(
                     return { success: true }
 
                 } catch(error) {
-                    const message = error.response?.data?.name || 'Login failed';
+                    const message = error.response?.data?.message || 'Login failed';
                     set({ loading: false, error: message });
                     return { success: false, error: message }
                 }
             },
 
             logout: async () => {
-                await api.post('/auth/logout');
-                set({ user: null, token: null, isAuthenticated: false });
+                try {
+                    await api.post('/auth/logout');
+                } finally {
+                    set({ user: null, token: null, isAuthenticated: false, loading: false, error: null });
+                }
                 useFarmStore.getState().clearActiveFarm();
             },
 
             setToken: (token) => set({ token }),
 
-            clearError: () => ({ error: null }),
+            clearAuth: () => {
+                set({
+                  user: null,
+                  token: null,
+                  isAuthenticated: false,
+                  loading: false,
+                  error: null,
+                });
+            
+                useFarmStore.getState().clearActiveFarm();
+            },
+ 
+
+            clearError: () => set({ error: null }),
         }),
 
         {

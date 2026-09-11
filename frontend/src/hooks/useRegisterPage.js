@@ -62,7 +62,7 @@ export function useRegisterPage() {
         confirmPassword,
       };
     } else {
-      if (!name || !email || farmName) {
+      if (!name || !email || !farmName) {
         toast.error("Please fill in all required fields");
         return;
       }

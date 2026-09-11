@@ -17,8 +17,18 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
 
+        const routesWithoutFarmScope = [
+            '/auth/login',
+            '/auth/register',
+            '/auth/refresh',
+            '/auth/logout',
+            '/registration-tokens/validate',
+        ];
+
+        const shouldSkipFarmScope = routesWithoutFarmScope.some(path => config.url?.includes(path));
+
         const activeFarmId = useFarmStore.getState().activeFarmId;
-        if(activeFarmId) {
+        if(activeFarmId && !shouldSkipFarmScope) {
             config.params = {farm_id: activeFarmId, ...config.params}
         }
 
@@ -29,29 +39,29 @@ api.interceptors.request.use(
 
 
 api.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
-        if(error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
+  (response) => response,
 
-            try {
-                const { data } = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
-                const newToken = data.data.token;
+  (error) => {
+    const publicPaths = [
+      '/auth/login',
+      '/auth/register',
+      '/registration-tokens/validate',
+    ];
 
-                useAuthStore.getState().setToken(newToken);
+    const isPublicRequest = publicPaths.some((path) =>
+      error.config?.url?.includes(path)
+    );
 
-                originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                return api(originalRequest);
-            } catch (refreshError) {
-                useAuthStore.getState().logout();
-                window.location.href = '/login';
-                return Promise.reject(refreshError);
-            }
-        }
-
-        return Promise.reject(error);
+    if (
+      error.response?.status === 401 &&
+      !isPublicRequest
+    ) {
+      useAuthStore.getState().clearAuth();
+      window.location.href = '/login';
     }
-)
+
+    return Promise.reject(error);
+  }
+);
 
 export default api

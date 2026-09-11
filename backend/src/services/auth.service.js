@@ -3,7 +3,7 @@ import RegistrationToken from "../models/RegistrationToken.js";
 import User from "../models/User.js";
 import Worker from "../models/Worker.js";
 import { comparPasword, hashPassword } from "../utils/password.js";
-import { generateRefreshToken, generateToken } from "../utils/token.js";
+import { generateToken } from "../utils/token.js";
 import crypto from "crypto";
 import mongoose from "mongoose";
 
@@ -240,7 +240,6 @@ export const loginService = async (data) => {
   const farm = await Farm.findById(userExists.farm_id).select("name");
 
   const accessToken = generateToken(userExists);
-  const refreshToken = generateRefreshToken(userExists);
 
-  return { user: userExists, accessToken, refreshToken, farm };
+  return { user: userExists, accessToken, farm };
 };
