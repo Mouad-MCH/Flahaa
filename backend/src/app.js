@@ -18,6 +18,7 @@ import RegistrationTokenRoutes from './routes/registrationToken.routes.js'
 
 import { errorHandler, notFound } from './middlewares/errHandler.js';
 import { swaggerSpec } from './config/swagger.js';
+import { ENV } from './config/env.js';
 
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,7 +28,7 @@ const app = express();
 app.use(helmet());
 app.use(express.json());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN,
+  origin: ENV.CORS_ORIGIN,
   credentials: true,
 }));
 app.use(morgan('dev'))

@@ -115,13 +115,21 @@ router.use(resolveAdminFarm);
  *           schema:
  *             oneOf:
  *               - type: object
- *                 required: [role]
+ *                 required: [role, name, email]
  *                 properties:
  *                   role:
  *                     type: string
  *                     enum: [supervisor]
+ *                   name:
+ *                     type: string
+ *                     minLength: 2
+ *                     example: Karim Alaoui
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                     example: karim@example.com
  *               - type: object
- *                 required: [role, worker_id]
+ *                 required: [role, worker_id, email]
  *                 properties:
  *                   role:
  *                     type: string
@@ -129,6 +137,10 @@ router.use(resolveAdminFarm);
  *                   worker_id:
  *                     type: string
  *                     example: 664f1c2e5b3c2a0012a3b789
+ *                   email:
+ *                     type: string
+ *                     format: email
+ *                     example: karim@example.com
  *     responses:
  *       201:
  *         description: Registration token created
@@ -143,9 +155,13 @@ router.use(resolveAdminFarm);
  *                 data:
  *                   type: object
  *                   properties:
- *                     token:
+ *                     message:
  *                       type: string
- *                       description: Raw registration token; shown only once, share it with the invitee
+ *                       example: Invitation sent successfully
+ *                     expiresAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: '2026-09-12T12:00:00.000Z'
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:

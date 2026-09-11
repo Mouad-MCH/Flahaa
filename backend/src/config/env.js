@@ -47,14 +47,28 @@ const envSchema = z.object({
 
     LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
 
-    MAILTRAP_HOST: z.string(),
-    MAILTRAP_PORT: z.coerce.number().int().positive(),
-    MAILTRAP_USER: z.string(),
-    MAILTRAP_PASS: z.string(),
+    MAILTRAP_HOST: z.string().optional(),
+    MAILTRAP_PORT: z.coerce.number().int().positive().optional(),
+    MAILTRAP_USER: z.string().optional(),
+    MAILTRAP_PASS: z.string().optional(),
 
-    
+
     FRONTEND_URL: z.string().url(),
-})
+
+    CORS_ORIGIN: z.string().url(),
+}).superRefine((data, ctx) => {
+    if (data.APP_STAGE === 'test') return;
+
+    for (const key of ['MAILTRAP_HOST', 'MAILTRAP_PORT', 'MAILTRAP_USER', 'MAILTRAP_PASS']) {
+        if (data[key] === undefined) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `${key} is required`,
+                path: [key],
+            });
+        }
+    }
+});
 
 const env = envSchema.safeParse(process.env);
 
