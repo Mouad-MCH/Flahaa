@@ -20,7 +20,7 @@ const FarmCart = ({ farm, selectFarm }) => {
       <div className="w-full p-2">
         <Button
           className="w-full h-9 cursor-pointer"
-          onClick={() => selectFarm(farm._id)}
+          onClick={() => selectFarm(farm)}
         >
           <h3>select farm</h3>
         </Button>

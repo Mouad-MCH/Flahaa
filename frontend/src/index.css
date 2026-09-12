@@ -184,4 +184,24 @@ html.light .text-gray-600 { color: var(--c-text-4) !important; }
   .btn-primary {
     @apply bg-field rounded-md text-white hover:bg-field-hover;
   }
+
+  /* ── sidebar nav links ── */
+  .sidebar-link {
+    @apply flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-ink-3 transition-colors hover:bg-sunken hover:text-ink;
+  }
+  .sidebar-link-active {
+    @apply bg-field-soft text-field hover:bg-field-soft hover:text-field;
+  }
+  .sidebar-link-collapsed {
+    @apply justify-center px-2.5;
+  }
+
+  /* ── sidebar icon-only buttons (collapsed state) ── */
+  .sidebar-icon-btn {
+    @apply flex w-full items-center justify-center rounded-lg py-2.5 text-ink-3 transition-colors hover:bg-sunken hover:text-ink;
+  }
+
+  .cp {
+    @apply cursor-pointer;
+  }
 }
