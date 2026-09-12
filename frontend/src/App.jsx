@@ -9,6 +9,7 @@ import RoleRoute from './components/RoleRoute'
 import AuthRedirect from './components/AuthRedirect'
 import FarmGuard from './components/FarmGuard'
 import SelectFarmPage from './pages/SelectFarmPage'
+import MainLayout from './components/layout/MainLayout'
 
 const App = () => {
   return (
@@ -48,13 +49,19 @@ const App = () => {
             </ProtectedRoute>
           } />
 
-          <Route path="/dashboard" element={
+          <Route element={
             <ProtectedRoute>
+              <MainLayout />
+            </ProtectedRoute>
+          }>
+
+          <Route path="/dashboard" element={
               <FarmGuard>
                 <DashboardPage />
               </FarmGuard>
-            </ProtectedRoute>
           } />
+
+          </Route>
 
           <Route path="*" element={<NotFoundPage/>} />
        </Routes>

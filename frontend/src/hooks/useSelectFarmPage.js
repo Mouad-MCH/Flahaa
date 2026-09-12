@@ -6,7 +6,7 @@ import { useFarmStore } from "../store/farmStore.js";
 
 export function useSelectFarmPage() {
     const navigate = useNavigate();
-    const { activeFarmId, setActiveFarmId } = useFarmStore();
+    const { activeFarmId, setActiveFarmId, setFarmActive } = useFarmStore();
 
     const { data: farms = [], isLoading, isError, refetch } = useQuery({
         queryKey: ["farms", "mine"],
@@ -16,19 +16,12 @@ export function useSelectFarmPage() {
     useEffect(() => {
         if (activeFarmId) {
             navigate("/dashboard", { replace: true });
-            return;
         }
+    }, [activeFarmId, navigate]);
 
-        if (isLoading || isError) return;
-
-        if (farms.length <= 1) {
-            if (farms.length === 1) setActiveFarmId(farms[0]._id);
-            navigate("/dashboard", { replace: true });
-        }
-    }, [activeFarmId, isLoading, isError, farms, navigate, setActiveFarmId]);
-
-    const selectFarm = (farmId) => {
-        setActiveFarmId(farmId);
+    const selectFarm = (farm) => {
+        setActiveFarmId(farm._id);
+        setFarmActive(farm)
         navigate("/dashboard", { replace: true });
     };
 

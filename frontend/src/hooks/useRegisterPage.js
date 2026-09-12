@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../store/authStore";
 import { getRegistrationTokenInfo } from "../services/registrationTokenService.js";
+import { usePostAuthRedirect } from "./usePostAuthRedirect.js";
 
 export function useRegisterPage() {
-  const navigate = useNavigate();
   const { register, loading } = useAuthStore();
+  const redirectAfterAuth = usePostAuthRedirect();
 
   const [searchParams] = useSearchParams();
 
@@ -82,7 +83,7 @@ export function useRegisterPage() {
 
     if (result.success) {
       toast.success("Account created successfully");
-      navigate("/dashboard");
+      redirectAfterAuth(useAuthStore.getState().user);
     } else {
       toast.error(result.error);
     }
