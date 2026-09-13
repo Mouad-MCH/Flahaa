@@ -6,7 +6,7 @@ vi.mock('../../models/Worker.js', () => ({
     create: vi.fn(),
     find: vi.fn(),
     countDocuments: vi.fn(),
-    findByIdAndUpdate: vi.fn(),
+    findOneAndUpdate: vi.fn(),
     findOneAndDelete: vi.fn(),
   },
 }));
@@ -32,6 +32,10 @@ const queryMock = (resolvedValue) => {
   return query;
 };
 
+const admin = { _id: 'admin-1', role: 'admin' };
+const supervisorA = { _id: 'sup-a', role: 'supervisor' };
+const supervisorB = { _id: 'sup-b', role: 'supervisor' };
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -43,7 +47,7 @@ describe('createWorkerService', () => {
     Worker.findOne.mockReturnValueOnce(queryMock({ _id: 'existing' }));
 
     await expect(
-      createWorkerService({ name: 'John', CIN: 'ABC123', daily_rate: 100 }, farmId, 'admin')
+      createWorkerService({ name: 'John', CIN: 'ABC123', daily_rate: 100 }, farmId, admin)
     ).rejects.toMatchObject({
       statusCode: 400,
       message: "A worker with CIN 'ABC123' already exists on this farm.",
@@ -59,7 +63,7 @@ describe('createWorkerService', () => {
     await createWorkerService(
       { name: 'John', CIN: 'ABC123', daily_rate: 100, supervisor_id: 'sup-1' },
       farmId,
-      'admin'
+      admin
     );
 
     expect(Worker.create).toHaveBeenCalledWith(
@@ -71,22 +75,24 @@ describe('createWorkerService', () => {
     Worker.findOne.mockReturnValueOnce(queryMock(null));
     Worker.create.mockResolvedValueOnce({ _id: 'w1' });
 
-    await createWorkerService({ name: 'John', CIN: 'ABC123', daily_rate: 100 }, farmId, 'admin');
+    await createWorkerService({ name: 'John', CIN: 'ABC123', daily_rate: 100 }, farmId, admin);
 
     expect(Worker.create).toHaveBeenCalledWith(expect.objectContaining({ supervisor_id: null }));
   });
 
-  it('forces supervisor_id to null for a non-admin even if one was sent', async () => {
+  it('forces supervisor_id to the requesting supervisor even if a different one was sent', async () => {
     Worker.findOne.mockReturnValueOnce(queryMock(null));
     Worker.create.mockResolvedValueOnce({ _id: 'w1' });
 
     await createWorkerService(
-      { name: 'John', CIN: 'ABC123', daily_rate: 100, supervisor_id: 'sup-1' },
+      { name: 'John', CIN: 'ABC123', daily_rate: 100, supervisor_id: 'sup-b' },
       farmId,
-      'supervisor'
+      supervisorA
     );
 
-    expect(Worker.create).toHaveBeenCalledWith(expect.objectContaining({ supervisor_id: null }));
+    expect(Worker.create).toHaveBeenCalledWith(
+      expect.objectContaining({ supervisor_id: supervisorA._id })
+    );
   });
 
   it('converts join_date to a Date when provided, and leaves it undefined otherwise', async () => {
@@ -96,33 +102,54 @@ describe('createWorkerService', () => {
     await createWorkerService(
       { name: 'John', CIN: 'ABC123', daily_rate: 100, join_date: '2026-01-01' },
       farmId,
-      'admin'
+      admin
     );
     expect(Worker.create).toHaveBeenLastCalledWith(
       expect.objectContaining({ join_date: new Date('2026-01-01') })
     );
 
-    await createWorkerService({ name: 'John', CIN: 'DEF456', daily_rate: 100 }, farmId, 'admin');
+    await createWorkerService({ name: 'John', CIN: 'DEF456', daily_rate: 100 }, farmId, admin);
     expect(Worker.create).toHaveBeenLastCalledWith(expect.objectContaining({ join_date: undefined }));
   });
 });
 
 describe('listWorkersService', () => {
-  it('scopes the query to the given farm with no optional filters', async () => {
+  it('scopes the query to the given farm with no optional filters (admin)', async () => {
     Worker.find.mockReturnValueOnce(queryMock([]));
     Worker.countDocuments.mockResolvedValueOnce(0);
 
-    await listWorkersService('farm-1', { page: 1, limit: 20 });
+    await listWorkersService('farm-1', { page: 1, limit: 20 }, admin);
 
     expect(Worker.find).toHaveBeenCalledWith({ farm_id: 'farm-1' });
     expect(Worker.countDocuments).toHaveBeenCalledWith({ farm_id: 'farm-1' });
+  });
+
+  it('admin lists all farm workers regardless of supervisor', async () => {
+    const workers = [{ _id: 'w1', supervisor_id: 'sup-a' }, { _id: 'w2', supervisor_id: 'sup-b' }];
+    Worker.find.mockReturnValueOnce(queryMock(workers));
+    Worker.countDocuments.mockResolvedValueOnce(2);
+
+    const result = await listWorkersService('farm-1', { page: 1, limit: 20 }, admin);
+
+    expect(Worker.find).toHaveBeenCalledWith({ farm_id: 'farm-1' });
+    expect(result.workers).toEqual(workers);
+  });
+
+  it('supervisor lists only their own workers', async () => {
+    Worker.find.mockReturnValueOnce(queryMock([]));
+    Worker.countDocuments.mockResolvedValueOnce(0);
+
+    await listWorkersService('farm-1', { page: 1, limit: 20 }, supervisorA);
+
+    expect(Worker.find).toHaveBeenCalledWith({ farm_id: 'farm-1', supervisor_id: supervisorA._id });
+    expect(Worker.countDocuments).toHaveBeenCalledWith({ farm_id: 'farm-1', supervisor_id: supervisorA._id });
   });
 
   it('adds a status filter when provided', async () => {
     Worker.find.mockReturnValueOnce(queryMock([]));
     Worker.countDocuments.mockResolvedValueOnce(0);
 
-    await listWorkersService('farm-1', { status: 'inactive', page: 1, limit: 20 });
+    await listWorkersService('farm-1', { status: 'inactive', page: 1, limit: 20 }, admin);
 
     expect(Worker.find).toHaveBeenCalledWith({ farm_id: 'farm-1', status: 'inactive' });
   });
@@ -131,7 +158,7 @@ describe('listWorkersService', () => {
     Worker.find.mockReturnValueOnce(queryMock([]));
     Worker.countDocuments.mockResolvedValueOnce(0);
 
-    await listWorkersService('farm-1', { search: 'ali', page: 1, limit: 20 });
+    await listWorkersService('farm-1', { search: 'ali', page: 1, limit: 20 }, admin);
 
     expect(Worker.find).toHaveBeenCalledWith({
       farm_id: 'farm-1',
@@ -139,12 +166,22 @@ describe('listWorkersService', () => {
     });
   });
 
+  it('sorts by createdAt descending', async () => {
+    const query = queryMock([]);
+    Worker.find.mockReturnValueOnce(query);
+    Worker.countDocuments.mockResolvedValueOnce(0);
+
+    await listWorkersService('farm-1', { page: 1, limit: 20 }, admin);
+
+    expect(query.sort).toHaveBeenCalledWith({ createdAt: -1 });
+  });
+
   it('returns paginated results with computed page count', async () => {
     const workers = [{ _id: 'w1' }, { _id: 'w2' }];
     Worker.find.mockReturnValueOnce(queryMock(workers));
     Worker.countDocuments.mockResolvedValueOnce(5);
 
-    const result = await listWorkersService('farm-1', { page: 2, limit: 2 });
+    const result = await listWorkersService('farm-1', { page: 2, limit: 2 }, admin);
 
     expect(result).toEqual({
       pagination: { total: 5, page: 2, limit: 2, pages: 3 },
@@ -154,45 +191,92 @@ describe('listWorkersService', () => {
 });
 
 describe('getWorkerService', () => {
-  it('returns the worker when found on the given farm', async () => {
+  it('returns the worker when found on the given farm (admin)', async () => {
     const worker = { _id: 'w1', farm_id: 'farm-1' };
     Worker.findOne.mockReturnValueOnce(queryMock(worker));
 
-    const result = await getWorkerService('w1', 'farm-1');
+    const result = await getWorkerService('w1', 'farm-1', admin);
 
-    expect(Worker.findOne).toHaveBeenCalledWith({ _id: 'w1', farm_id: 'farm-1' });
+    expect(Worker.findOne).toHaveBeenCalledWith({ farm_id: 'farm-1', _id: 'w1' });
     expect(result).toBe(worker);
   });
 
   it('throws a 404 when the worker does not exist on the farm', async () => {
     Worker.findOne.mockReturnValueOnce(queryMock(null));
 
-    await expect(getWorkerService('missing', 'farm-1')).rejects.toMatchObject({
+    await expect(getWorkerService('missing', 'farm-1', admin)).rejects.toMatchObject({
       statusCode: 404,
-      message: 'Worker not found on this farm',
+      message: 'Worker not found or not accessible',
+    });
+  });
+
+  it('supervisor can get their own worker', async () => {
+    const worker = { _id: 'w1', farm_id: 'farm-1', supervisor_id: supervisorA._id };
+    Worker.findOne.mockReturnValueOnce(queryMock(worker));
+
+    const result = await getWorkerService('w1', 'farm-1', supervisorA);
+
+    expect(Worker.findOne).toHaveBeenCalledWith({
+      farm_id: 'farm-1',
+      supervisor_id: supervisorA._id,
+      _id: 'w1',
+    });
+    expect(result).toBe(worker);
+  });
+
+  it('supervisor cannot get another supervisor\'s worker', async () => {
+    Worker.findOne.mockReturnValueOnce(queryMock(null));
+
+    await expect(getWorkerService('w1', 'farm-1', supervisorB)).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Worker not found or not accessible',
+    });
+
+    expect(Worker.findOne).toHaveBeenCalledWith({
+      farm_id: 'farm-1',
+      supervisor_id: supervisorB._id,
+      _id: 'w1',
     });
   });
 });
 
 describe('updateWorkerService', () => {
   const farmId = 'farm-1';
-  const existingWorker = { _id: 'w1', farm_id: farmId, CIN: 'ABC123' };
+  const existingWorker = { _id: 'w1', farm_id: farmId, CIN: 'ABC123', supervisor_id: supervisorA._id };
 
   it('throws a 404 when the worker is not found on the farm', async () => {
     Worker.findOne.mockReturnValueOnce(queryMock(null));
 
-    await expect(updateWorkerService('w1', farmId, {}, 'admin')).rejects.toMatchObject({
+    await expect(updateWorkerService('w1', farmId, {}, admin)).rejects.toMatchObject({
       statusCode: 404,
-      message: 'Worker not found on this farm',
+      message: 'Worker not found or not accessible',
     });
-    expect(Worker.findByIdAndUpdate).not.toHaveBeenCalled();
+    expect(Worker.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('supervisor cannot update another supervisor\'s worker', async () => {
+    Worker.findOne.mockReturnValueOnce(queryMock(null));
+
+    await expect(
+      updateWorkerService('w1', farmId, { name: 'Hacked' }, supervisorB)
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Worker not found or not accessible',
+    });
+
+    expect(Worker.findOne).toHaveBeenCalledWith({
+      farm_id: farmId,
+      supervisor_id: supervisorB._id,
+      _id: 'w1',
+    });
+    expect(Worker.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
   it('skips the CIN uniqueness check when CIN is unchanged', async () => {
     Worker.findOne.mockReturnValueOnce(queryMock(existingWorker));
-    Worker.findByIdAndUpdate.mockReturnValueOnce(queryMock({ ...existingWorker, name: 'New Name' }));
+    Worker.findOneAndUpdate.mockReturnValueOnce(queryMock({ ...existingWorker, name: 'New Name' }));
 
-    await updateWorkerService('w1', farmId, { CIN: 'ABC123', name: 'New Name' }, 'admin');
+    await updateWorkerService('w1', farmId, { CIN: 'ABC123', name: 'New Name' }, admin);
 
     expect(Worker.findOne).toHaveBeenCalledTimes(1);
   });
@@ -203,7 +287,7 @@ describe('updateWorkerService', () => {
       .mockReturnValueOnce(queryMock({ _id: 'other-worker' }));
 
     await expect(
-      updateWorkerService('w1', farmId, { CIN: 'NEWCIN' }, 'admin')
+      updateWorkerService('w1', farmId, { CIN: 'NEWCIN' }, admin)
     ).rejects.toMatchObject({
       statusCode: 400,
       message: "A worker with CIN 'NEWCIN' already exists on this farm.",
@@ -216,52 +300,67 @@ describe('updateWorkerService', () => {
     Worker.findOne
       .mockReturnValueOnce(queryMock(existingWorker))
       .mockReturnValueOnce(queryMock(null));
-    Worker.findByIdAndUpdate.mockReturnValueOnce(queryMock({ ...existingWorker, CIN: 'NEWCIN' }));
+    Worker.findOneAndUpdate.mockReturnValueOnce(queryMock({ ...existingWorker, CIN: 'NEWCIN' }));
 
-    const result = await updateWorkerService('w1', farmId, { CIN: 'NEWCIN' }, 'admin');
+    const result = await updateWorkerService('w1', farmId, { CIN: 'NEWCIN' }, admin);
 
     expect(result.CIN).toBe('NEWCIN');
   });
 
   it('maps supervisor_id "" to null for an admin, and passes through other values', async () => {
     Worker.findOne.mockReturnValueOnce(queryMock(existingWorker));
-    Worker.findByIdAndUpdate.mockReturnValueOnce(queryMock(existingWorker));
+    Worker.findOneAndUpdate.mockReturnValueOnce(queryMock(existingWorker));
 
-    await updateWorkerService('w1', farmId, { supervisor_id: '' }, 'admin');
-    expect(Worker.findByIdAndUpdate).toHaveBeenLastCalledWith(
-      'w1',
+    await updateWorkerService('w1', farmId, { supervisor_id: '' }, admin);
+    expect(Worker.findOneAndUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ farm_id: farmId, _id: 'w1' }),
       expect.objectContaining({ supervisor_id: null }),
       expect.any(Object)
     );
 
     Worker.findOne.mockReturnValueOnce(queryMock(existingWorker));
-    Worker.findByIdAndUpdate.mockReturnValueOnce(queryMock(existingWorker));
-    await updateWorkerService('w1', farmId, { supervisor_id: 'sup-1' }, 'admin');
-    expect(Worker.findByIdAndUpdate).toHaveBeenLastCalledWith(
-      'w1',
+    Worker.findOneAndUpdate.mockReturnValueOnce(queryMock(existingWorker));
+    await updateWorkerService('w1', farmId, { supervisor_id: 'sup-1' }, admin);
+    expect(Worker.findOneAndUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({ farm_id: farmId, _id: 'w1' }),
       expect.objectContaining({ supervisor_id: 'sup-1' }),
       expect.any(Object)
     );
   });
 
-  it('strips supervisor_id entirely for a non-admin, leaving it unchanged', async () => {
+  it('strips supervisor_id entirely for a supervisor, leaving it unchanged', async () => {
     Worker.findOne.mockReturnValueOnce(queryMock(existingWorker));
-    Worker.findByIdAndUpdate.mockReturnValueOnce(queryMock(existingWorker));
+    Worker.findOneAndUpdate.mockReturnValueOnce(queryMock(existingWorker));
 
-    await updateWorkerService('w1', farmId, { supervisor_id: 'sup-1' }, 'supervisor');
+    await updateWorkerService('w1', farmId, { supervisor_id: 'sup-1' }, supervisorA);
 
-    const updateData = Worker.findByIdAndUpdate.mock.calls[0][1];
+    const updateData = Worker.findOneAndUpdate.mock.calls[0][1];
     expect(updateData).not.toHaveProperty('supervisor_id');
+  });
+
+  it('supervisor cannot reassign their own worker to another supervisor', async () => {
+    Worker.findOne.mockReturnValueOnce(queryMock(existingWorker));
+    Worker.findOneAndUpdate.mockReturnValueOnce(queryMock(existingWorker));
+
+    await updateWorkerService('w1', farmId, { supervisor_id: supervisorB._id }, supervisorA);
+
+    const updateData = Worker.findOneAndUpdate.mock.calls[0][1];
+    expect(updateData).not.toHaveProperty('supervisor_id');
+    expect(Worker.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ farm_id: farmId, supervisor_id: supervisorA._id, _id: 'w1' }),
+      expect.any(Object),
+      expect.any(Object)
+    );
   });
 
   it('converts join_date to a Date when provided', async () => {
     Worker.findOne.mockReturnValueOnce(queryMock(existingWorker));
-    Worker.findByIdAndUpdate.mockReturnValueOnce(queryMock(existingWorker));
+    Worker.findOneAndUpdate.mockReturnValueOnce(queryMock(existingWorker));
 
-    await updateWorkerService('w1', farmId, { join_date: '2026-02-01' }, 'admin');
+    await updateWorkerService('w1', farmId, { join_date: '2026-02-01' }, admin);
 
-    expect(Worker.findByIdAndUpdate).toHaveBeenCalledWith(
-      'w1',
+    expect(Worker.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ farm_id: farmId, _id: 'w1' }),
       expect.objectContaining({ join_date: new Date('2026-02-01') }),
       expect.any(Object)
     );
@@ -270,13 +369,13 @@ describe('updateWorkerService', () => {
   it('returns the updated, populated worker', async () => {
     const updated = { ...existingWorker, name: 'Updated' };
     Worker.findOne.mockReturnValueOnce(queryMock(existingWorker));
-    Worker.findByIdAndUpdate.mockReturnValueOnce(queryMock(updated));
+    Worker.findOneAndUpdate.mockReturnValueOnce(queryMock(updated));
 
-    const result = await updateWorkerService('w1', farmId, { name: 'Updated' }, 'admin');
+    const result = await updateWorkerService('w1', farmId, { name: 'Updated' }, admin);
 
     expect(result).toBe(updated);
-    expect(Worker.findByIdAndUpdate).toHaveBeenCalledWith(
-      'w1',
+    expect(Worker.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ farm_id: farmId, _id: 'w1' }),
       expect.objectContaining({ name: 'Updated' }),
       { new: true, runValidators: true }
     );
@@ -287,18 +386,46 @@ describe('deleteWorkerService', () => {
   it('throws a 404 when the worker is not found on the farm', async () => {
     Worker.findOneAndDelete.mockReturnValueOnce(queryMock(null));
 
-    await expect(deleteWorkerService('missing', 'farm-1')).rejects.toMatchObject({
+    await expect(deleteWorkerService('missing', 'farm-1', admin)).rejects.toMatchObject({
       statusCode: 404,
-      message: 'Worker not found on this farm',
+      message: 'Worker not found or not accessible',
     });
   });
 
-  it('deletes the worker scoped to the farm and returns its id', async () => {
+  it('deletes the worker scoped to the farm and returns its id (admin)', async () => {
     Worker.findOneAndDelete.mockReturnValueOnce(queryMock({ _id: 'w1' }));
 
-    const result = await deleteWorkerService('w1', 'farm-1');
+    const result = await deleteWorkerService('w1', 'farm-1', admin);
 
-    expect(Worker.findOneAndDelete).toHaveBeenCalledWith({ _id: 'w1', farm_id: 'farm-1' });
+    expect(Worker.findOneAndDelete).toHaveBeenCalledWith({ farm_id: 'farm-1', _id: 'w1' });
+    expect(result).toBe('w1');
+  });
+
+  it('supervisor cannot delete another supervisor\'s worker', async () => {
+    Worker.findOneAndDelete.mockReturnValueOnce(queryMock(null));
+
+    await expect(deleteWorkerService('w1', 'farm-1', supervisorB)).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Worker not found or not accessible',
+    });
+
+    expect(Worker.findOneAndDelete).toHaveBeenCalledWith({
+      farm_id: 'farm-1',
+      supervisor_id: supervisorB._id,
+      _id: 'w1',
+    });
+  });
+
+  it('supervisor can delete their own worker', async () => {
+    Worker.findOneAndDelete.mockReturnValueOnce(queryMock({ _id: 'w1' }));
+
+    const result = await deleteWorkerService('w1', 'farm-1', supervisorA);
+
+    expect(Worker.findOneAndDelete).toHaveBeenCalledWith({
+      farm_id: 'farm-1',
+      supervisor_id: supervisorA._id,
+      _id: 'w1',
+    });
     expect(result).toBe('w1');
   });
 });

@@ -4,7 +4,7 @@ import { createWorkerService, listWorkersService, getWorkerService, updateWorker
 
 export const createWorkerController = async (req, res, next) => {
     try {
-        const newWorker = await createWorkerService(req.body, req.scopedFarmId, req.user.role);
+        const newWorker = await createWorkerService(req.body, req.scopedFarmId, req.user);
 
         res.status(201).json({
             status: true,
@@ -20,7 +20,7 @@ export const createWorkerController = async (req, res, next) => {
 
 export const listWorkersController = async (req, res, next) => {
     try {
-        const workers = await listWorkersService(req.scopedFarmId, req.query);
+        const workers = await listWorkersService(req.scopedFarmId, req.query, req.user);
 
         res.status(200).json({
             status: true,
@@ -34,7 +34,7 @@ export const listWorkersController = async (req, res, next) => {
 
 export const getWorkerController = async (req, res, next) => {
     try {
-        const worker = await getWorkerService(req.params.id, req.scopedFarmId);
+        const worker = await getWorkerService(req.params.id, req.scopedFarmId, req.user);
 
         res.status(200).json({
             status: true,
@@ -49,7 +49,7 @@ export const getWorkerController = async (req, res, next) => {
 
 export const updateWorkerController = async (req, res, next) => {
     try {
-        const workerUpdated = await updateWorkerService(req.params.id, req.scopedFarmId, req.body, req.user.role);
+        const workerUpdated = await updateWorkerService(req.params.id, req.scopedFarmId, req.body, req.user);
 
         res.status(200).json({
             status: true,
@@ -63,10 +63,10 @@ export const updateWorkerController = async (req, res, next) => {
 
 export const deleteWorkerController = async (req, res, next) => {
     try {
-        await deleteWorkerService(req.params.id, req.scopedFarmId);
+        await deleteWorkerService(req.params.id, req.scopedFarmId, req.user);
 
         res.status(200).json({
-            sataus: true,
+            status: true,
             message: 'Worker deleted successfully'
         })
     }catch(error) {

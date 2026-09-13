@@ -172,17 +172,18 @@ describe("Woker routes", () => {
       expect(res.body.data.worker.supervisor_id).toBe(String(supervisor._id));
     });
 
-    it("forces supervisor_id to null when the requester is a supervisor", async () => {
+    it("forces supervisor_id to the requesting supervisor's own id, ignoring any value sent", async () => {
       const { farm } = await createAdminWithFarm();
+      const { supervisor: otherSupervisor } = await createSupervisor(farm._id);
       const { supervisor, token } = await createSupervisor(farm._id);
 
       const res = await request(app)
         .post(`/api/workers?farm_id=${farm._id}`)
         .set("Authorization", `Bearer ${token}`)
-        .send(validWorkerPayload({ supervisor_id: String(supervisor._id) }));
+        .send(validWorkerPayload({ supervisor_id: String(otherSupervisor._id) }));
 
       expect(res.status).toBe(201);
-      expect(res.body.data.worker.supervisor_id).toBeNull();
+      expect(res.body.data.worker.supervisor_id).toBe(String(supervisor._id));
     });
 
     it("returns 400 validation errors for missing required fields", async () => {
@@ -447,21 +448,41 @@ describe("Woker routes", () => {
       expect(res.status).toBe(404);
     });
 
-    it("ignores supervisor_id changes from a supervisor", async () => {
+    it("ignores supervisor_id changes from a supervisor on their own worker", async () => {
       const { farm } = await createAdminWithFarm();
+      const { supervisor: otherSupervisor } = await createSupervisor(farm._id);
       const { supervisor, token } = await createSupervisor(farm._id);
       const worker = await Worker.create({
         farm_id: farm._id,
+        supervisor_id: supervisor._id,
         ...validWorkerPayload(),
       });
 
       const res = await request(app)
         .put(`/api/workers/${worker._id}`)
         .set("Authorization", `Bearer ${token}`)
-        .send({ supervisor_id: String(supervisor._id) });
+        .send({ supervisor_id: String(otherSupervisor._id) });
 
       expect(res.status).toBe(200);
-      expect(res.body.data.supervisor_id).toBeNull();
+      expect(res.body.data.supervisor_id._id).toBe(String(supervisor._id));
+    });
+
+    it("returns 404 when a supervisor tries to update another supervisor's worker", async () => {
+      const { farm } = await createAdminWithFarm();
+      const { supervisor: ownerSupervisor } = await createSupervisor(farm._id);
+      const { token } = await createSupervisor(farm._id);
+      const worker = await Worker.create({
+        farm_id: farm._id,
+        supervisor_id: ownerSupervisor._id,
+        ...validWorkerPayload(),
+      });
+
+      const res = await request(app)
+        .put(`/api/workers/${worker._id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ name: "Hacked" });
+
+      expect(res.status).toBe(404);
     });
   });
 
