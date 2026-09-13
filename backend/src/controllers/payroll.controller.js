@@ -1,10 +1,10 @@
-import { 
-    calculatePayrollService, 
+import {
+    calculatePayrollService,
     getPayrollsService,
     getPayrollByWorkerService,
-    updatePayrollStausService,
-    getMyPayrollsService 
-} from '../services/pyroll.service.js'
+    updatePayrollStatusService,
+    getMyPayrollsService
+} from '../services/payroll.service.js'
 
 
 export const calculatePayrollController = async (req, res, next) => {
@@ -55,7 +55,7 @@ export const getPayrollByWorkerController = async (req, res, next) => {
 
 export const updatePayrollStatusController = async (req, res, next) => {
     try {
-        const payroll = await updatePayrollStausService(req.scopedFarmId, req.params.id, req.body);
+        const payroll = await updatePayrollStatusService(req.scopedFarmId, req.params.id, req.body);
 
         res.status(200).json({
             status: true,

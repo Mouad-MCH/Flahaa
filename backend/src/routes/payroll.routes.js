@@ -84,7 +84,7 @@ router.use(authGuard);
  */
 router.get('/me', validateQuery(getMyPayrollsQuery), getMyPayrollsController)
 
-router.use(roleGuard('admin', 'supervisor'));
+router.use(roleGuard('admin'));
 router.use(resolveAdminFarm);
 
 
@@ -93,16 +93,17 @@ router.use(resolveAdminFarm);
  * /payrolls/calculate:
  *   post:
  *     tags: [Payroll]
- *     summary: Calculate (or recalculate) a worker's payroll for a month
- *     description: Computes base salary from attendance, subtracts advances and deductions, adds bonuses, and upserts the payroll record for that worker/month/year on the caller's farm.
+ *     summary: Calculate (or recalculate) a worker's payroll for a month (admin only)
+ *     description: Admin only. Computes base salary from present days in attendance, adds bonuses, subtracts deductions, and upserts the payroll record for that worker/month/year on the selected farm. Salary advances are not implemented yet.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: farm_id
+ *         required: true
  *         schema:
  *           type: string
- *         description: Required for admins, identifies the target farm.
+ *         description: The target farm id.
  *     requestBody:
  *       required: true
  *       content:
@@ -146,16 +147,17 @@ router.post(
  * /payrolls:
  *   get:
  *     tags: [Payroll]
- *     summary: List payroll records for a farm
- *     description: Returns payroll records on the caller's farm, optionally filtered by worker, status, month, and year.
+ *     summary: List payroll records for a farm (admin only)
+ *     description: Admin only. Returns payroll records on the selected farm, optionally filtered by worker, status, month, and year.
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: farm_id
+ *         required: true
  *         schema:
  *           type: string
- *         description: Required for admins, identifies the target farm.
+ *         description: The target farm id.
  *       - in: query
  *         name: month
  *         required: true
@@ -235,8 +237,8 @@ router.get(
  * /payrolls/{worker_id}/{month}/{year}:
  *   get:
  *     tags: [Payroll]
- *     summary: Get a specific worker's payroll for a month
- *     description: Returns the payroll record for a given worker/month/year on the caller's farm. Returns 404 if it hasn't been calculated yet.
+ *     summary: Get a specific worker's payroll for a month (admin only)
+ *     description: Admin only. Returns the payroll record for a given worker/month/year on the selected farm. Returns 404 if it hasn't been calculated yet.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -261,9 +263,10 @@ router.get(
  *           example: 2026
  *       - in: query
  *         name: farm_id
+ *         required: true
  *         schema:
  *           type: string
- *         description: Required for admins, identifies the target farm.
+ *         description: The target farm id.
  *     responses:
  *       200:
  *         description: The worker's payroll record for the given month
@@ -301,8 +304,8 @@ router.get(
  * /payrolls/{id}/status:
  *   patch:
  *     tags: [Payroll]
- *     summary: Update a payroll record's status
- *     description: Sets a payroll record's status to paid or pending. Setting it to paid stamps paid_at with the current date.
+ *     summary: Update a payroll record's status (admin only)
+ *     description: Admin only. Sets a payroll record's status to paid or pending. Setting it to paid stamps paid_at with the current date; setting it to pending clears paid_at.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -314,9 +317,10 @@ router.get(
  *           type: string
  *       - in: query
  *         name: farm_id
+ *         required: true
  *         schema:
  *           type: string
- *         description: Required for admins, identifies the target farm.
+ *         description: The target farm id.
  *     requestBody:
  *       required: true
  *       content:
