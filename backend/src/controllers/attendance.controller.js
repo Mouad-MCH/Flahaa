@@ -4,7 +4,7 @@ import { createAttendanceService, bulkCreateAttendanceService, getAttendanceByDa
 
 export const createAttendanceController = async (req, res, next) => {
     try {
-        const attendance = await createAttendanceService(req.scopedFarmId, req.body, req.user._id);
+        const attendance = await createAttendanceService(req.scopedFarmId, req.body, req.user);
 
         res.status(201).json({
             status: true,
@@ -17,7 +17,7 @@ export const createAttendanceController = async (req, res, next) => {
 
 export const bulkCreateAttendanceController = async (req, res, next) => {
     try {
-        const attendance = await bulkCreateAttendanceService(req.scopedFarmId, req.body, req.user._id);
+        const attendance = await bulkCreateAttendanceService(req.scopedFarmId, req.body, req.user);
 
         res.status(201).json({
             status: true,
@@ -31,7 +31,7 @@ export const bulkCreateAttendanceController = async (req, res, next) => {
 
 export const getAttendanceByDateController = async (req, res, next) => {
     try {
-        const attendance = await getAttendanceByDateService(req.scopedFarmId, req.query);
+        const attendance = await getAttendanceByDateService(req.scopedFarmId, req.query, req.user);
 
         res.status(200).json({
             status: true,
@@ -47,7 +47,7 @@ export const getAttendanceByDateController = async (req, res, next) => {
 
 export const getWorkerAttendanceController = async (req, res, next) => {
     try {
-        const workerAttendance = await getWorkerAttendanceService(req.scopedFarmId, req.params.id, req.query);
+        const workerAttendance = await getWorkerAttendanceService(req.scopedFarmId, req.params.id, req.query, req.user);
 
         res.status(200).json({
             status: true,
@@ -65,7 +65,7 @@ export const getWorkerAttendanceController = async (req, res, next) => {
 export const getMonthlySummaryController = async (req, res, next) => {
     try {
 
-        const buckets = await getMonthlySummaryService(req.scopedFarmId, req.query.months)
+        const buckets = await getMonthlySummaryService(req.scopedFarmId, req.query.months, req.user)
 
 
         res.status(200).json({
