@@ -81,13 +81,25 @@ export const deleteSupervisorService = async (supervisorId, farmId) => {
         },
         { status: 'inactive' },
         { new: true }
-    );
+    ).select('-password');
 
     if(!supervisor) {
         const error = new Error('Supervisor not found on this farm');
         error.statusCode = 404;
         throw error;
     }
+
+    await Worker.updateMany(
+        {
+            farm_id: farmId,
+            supervisor_id: supervisorId
+        },
+        {
+            $set: {
+                supervisor_id: null
+            }
+        }
+    );
 
     return supervisor;
 }
@@ -111,12 +123,26 @@ export const updateSupervisorService = async (supervisorId, farmId, data) => {
         },
         data,
         { new: true, runValidators: true }
-    );
+    ).select('-password');
 
     if(!supervisor) {
         const error = new Error('Supervisor not found on this farm');
         error.statusCode = 404;
         throw error;
+    }
+
+    if(supervisor.status === 'inactive') {
+        await Worker.updateMany(
+            {
+                farm_id: farmId,
+                supervisor_id: supervisorId
+            },
+            {
+                $set: {
+                    supervisor_id: null
+                }
+            }
+        );
     }
 
     return supervisor;

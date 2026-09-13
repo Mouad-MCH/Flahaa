@@ -1,5 +1,21 @@
+import User from "../models/User.js";
 import Worker from "../models/Worker.js";
 import { buildWorkerScope } from "../utils/workerScope.js";
+
+const assertActiveSupervisor = async (supervisorId, farmId) => {
+    const supervisor = await User.findOne({
+        _id: supervisorId,
+        farm_id: farmId,
+        role: 'supervisor',
+        status: 'active'
+    });
+
+    if(!supervisor) {
+        const error = new Error('Supervisor not found, inactive, or not on this farm');
+        error.statusCode = 404;
+        throw error;
+    }
+}
 
 export const createWorkerService = async (workerData, farm_id, user) => {
 
@@ -15,6 +31,12 @@ export const createWorkerService = async (workerData, farm_id, user) => {
         throw error;
     }
 
+    const resolvedSupervisorId = user.role === 'admin' ? (supervisor_id || null) : user._id;
+
+    if(user.role === 'admin' && resolvedSupervisorId) {
+        await assertActiveSupervisor(resolvedSupervisorId, farm_id);
+    }
+
     const worker = await Worker.create({
       farm_id,
       name,
@@ -26,7 +48,7 @@ export const createWorkerService = async (workerData, farm_id, user) => {
       daily_rate,
       status,
       join_date: join_date ? new Date(join_date) : undefined,
-      supervisor_id: user.role === 'admin' ? (supervisor_id || null) : user._id
+      supervisor_id: resolvedSupervisorId
     });
 
 
@@ -110,6 +132,12 @@ export const updateWorkerService = async (workerId, farmId, Data, user) => {
         }
     }
 
+    const resolvedSupervisorId = user.role === "admin" ? (supervisor_id === '' ? null : supervisor_id) : undefined;
+
+    if(user.role === 'admin' && supervisor_id !== undefined && resolvedSupervisorId) {
+        await assertActiveSupervisor(resolvedSupervisorId, farmId);
+    }
+
     const updateData = {
       name,
       CIN,
@@ -120,7 +148,7 @@ export const updateWorkerService = async (workerId, farmId, Data, user) => {
       daily_rate,
       status,
       join_date: join_date ? new Date(join_date) : undefined,
-      supervisor_id: user.role === "admin" ? (supervisor_id === '' ? null : supervisor_id) : undefined
+      supervisor_id: resolvedSupervisorId
     };
 
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);

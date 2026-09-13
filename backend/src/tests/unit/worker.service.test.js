@@ -11,7 +11,14 @@ vi.mock('../../models/Worker.js', () => ({
   },
 }));
 
+vi.mock('../../models/User.js', () => ({
+  default: {
+    findOne: vi.fn(),
+  },
+}));
+
 import Worker from '../../models/Worker.js';
+import User from '../../models/User.js';
 import {
   createWorkerService,
   listWorkersService,
@@ -38,6 +45,10 @@ const supervisorB = { _id: 'sup-b', role: 'supervisor' };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Default: any supervisor_id looked up resolves to an active supervisor,
+  // so existing tests that pass a supervisor_id don't need to care about
+  // this check unless they're specifically testing it.
+  User.findOne.mockResolvedValue({ _id: 'some-supervisor', role: 'supervisor', status: 'active' });
 });
 
 describe('createWorkerService', () => {
@@ -66,9 +77,39 @@ describe('createWorkerService', () => {
       admin
     );
 
+    expect(User.findOne).toHaveBeenCalledWith({
+      _id: 'sup-1',
+      farm_id: farmId,
+      role: 'supervisor',
+      status: 'active',
+    });
     expect(Worker.create).toHaveBeenCalledWith(
       expect.objectContaining({ supervisor_id: 'sup-1' })
     );
+  });
+
+  it('rejects assigning a worker to an inactive or missing supervisor', async () => {
+    Worker.findOne.mockReturnValueOnce(queryMock(null));
+    User.findOne.mockResolvedValueOnce(null);
+
+    await expect(
+      createWorkerService(
+        { name: 'John', CIN: 'ABC123', daily_rate: 100, supervisor_id: 'inactive-sup' },
+        farmId,
+        admin
+      )
+    ).rejects.toMatchObject({ statusCode: 404 });
+
+    expect(Worker.create).not.toHaveBeenCalled();
+  });
+
+  it('does not validate a supervisor when none is provided by an admin', async () => {
+    Worker.findOne.mockReturnValueOnce(queryMock(null));
+    Worker.create.mockResolvedValueOnce({ _id: 'w1' });
+
+    await createWorkerService({ name: 'John', CIN: 'ABC123', daily_rate: 100 }, farmId, admin);
+
+    expect(User.findOne).not.toHaveBeenCalled();
   });
 
   it('defaults supervisor_id to null for an admin who did not send one', async () => {
@@ -93,6 +134,7 @@ describe('createWorkerService', () => {
     expect(Worker.create).toHaveBeenCalledWith(
       expect.objectContaining({ supervisor_id: supervisorA._id })
     );
+    expect(User.findOne).not.toHaveBeenCalled();
   });
 
   it('converts join_date to a Date when provided, and leaves it undefined otherwise', async () => {
@@ -317,15 +359,43 @@ describe('updateWorkerService', () => {
       expect.objectContaining({ supervisor_id: null }),
       expect.any(Object)
     );
+    // Unassigning (null) never needs to validate a supervisor.
+    expect(User.findOne).not.toHaveBeenCalled();
 
     Worker.findOne.mockReturnValueOnce(queryMock(existingWorker));
     Worker.findOneAndUpdate.mockReturnValueOnce(queryMock(existingWorker));
     await updateWorkerService('w1', farmId, { supervisor_id: 'sup-1' }, admin);
+    expect(User.findOne).toHaveBeenCalledWith({
+      _id: 'sup-1',
+      farm_id: farmId,
+      role: 'supervisor',
+      status: 'active',
+    });
     expect(Worker.findOneAndUpdate).toHaveBeenLastCalledWith(
       expect.objectContaining({ farm_id: farmId, _id: 'w1' }),
       expect.objectContaining({ supervisor_id: 'sup-1' }),
       expect.any(Object)
     );
+  });
+
+  it('rejects reassigning a worker to an inactive or missing supervisor', async () => {
+    Worker.findOne.mockReturnValueOnce(queryMock(existingWorker));
+    User.findOne.mockResolvedValueOnce(null);
+
+    await expect(
+      updateWorkerService('w1', farmId, { supervisor_id: 'inactive-sup' }, admin)
+    ).rejects.toMatchObject({ statusCode: 404 });
+
+    expect(Worker.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('does not re-validate the supervisor when supervisor_id is not part of the update', async () => {
+    Worker.findOne.mockReturnValueOnce(queryMock(existingWorker));
+    Worker.findOneAndUpdate.mockReturnValueOnce(queryMock({ ...existingWorker, name: 'New Name' }));
+
+    await updateWorkerService('w1', farmId, { name: 'New Name' }, admin);
+
+    expect(User.findOne).not.toHaveBeenCalled();
   });
 
   it('strips supervisor_id entirely for a supervisor, leaving it unchanged', async () => {

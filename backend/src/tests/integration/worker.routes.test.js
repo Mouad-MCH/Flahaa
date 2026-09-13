@@ -186,6 +186,32 @@ describe("Woker routes", () => {
       expect(res.body.data.worker.supervisor_id).toBe(String(supervisor._id));
     });
 
+    it("rejects assigning a new worker to an inactive supervisor", async () => {
+      const { token, farm } = await createAdminWithFarm();
+      const { supervisor } = await createSupervisor(farm._id);
+      await User.findByIdAndUpdate(supervisor._id, { status: "inactive" });
+
+      const res = await request(app)
+        .post(`/api/workers?farm_id=${farm._id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send(validWorkerPayload({ supervisor_id: String(supervisor._id) }));
+
+      expect(res.status).toBe(404);
+    });
+
+    it("rejects assigning a new worker to a supervisor from another farm", async () => {
+      const { token, farm } = await createAdminWithFarm();
+      const otherAdmin = await createAdminWithFarm();
+      const { supervisor: otherFarmSupervisor } = await createSupervisor(otherAdmin.farm._id);
+
+      const res = await request(app)
+        .post(`/api/workers?farm_id=${farm._id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send(validWorkerPayload({ supervisor_id: String(otherFarmSupervisor._id) }));
+
+      expect(res.status).toBe(404);
+    });
+
     it("returns 400 validation errors for missing required fields", async () => {
       const { token, farm } = await createAdminWithFarm();
       const res = await request(app)
@@ -465,6 +491,48 @@ describe("Woker routes", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.supervisor_id._id).toBe(String(supervisor._id));
+    });
+
+    it("allows an admin to assign a worker to an active supervisor on the same farm", async () => {
+      const { token, farm } = await createAdminWithFarm();
+      const { supervisor } = await createSupervisor(farm._id);
+      const worker = await Worker.create({ farm_id: farm._id, ...validWorkerPayload() });
+
+      const res = await request(app)
+        .put(`/api/workers/${worker._id}?farm_id=${farm._id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ supervisor_id: String(supervisor._id) });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.supervisor_id._id).toBe(String(supervisor._id));
+    });
+
+    it("rejects updating a worker to use an inactive supervisor", async () => {
+      const { token, farm } = await createAdminWithFarm();
+      const { supervisor } = await createSupervisor(farm._id);
+      await User.findByIdAndUpdate(supervisor._id, { status: "inactive" });
+      const worker = await Worker.create({ farm_id: farm._id, ...validWorkerPayload() });
+
+      const res = await request(app)
+        .put(`/api/workers/${worker._id}?farm_id=${farm._id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ supervisor_id: String(supervisor._id) });
+
+      expect(res.status).toBe(404);
+    });
+
+    it("rejects updating a worker to use a supervisor from another farm", async () => {
+      const { token, farm } = await createAdminWithFarm();
+      const otherAdmin = await createAdminWithFarm();
+      const { supervisor: otherFarmSupervisor } = await createSupervisor(otherAdmin.farm._id);
+      const worker = await Worker.create({ farm_id: farm._id, ...validWorkerPayload() });
+
+      const res = await request(app)
+        .put(`/api/workers/${worker._id}?farm_id=${farm._id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ supervisor_id: String(otherFarmSupervisor._id) });
+
+      expect(res.status).toBe(404);
     });
 
     it("returns 404 when a supervisor tries to update another supervisor's worker", async () => {
