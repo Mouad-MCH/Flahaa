@@ -29,7 +29,7 @@ export const createTaskController = async (req, res, next) => {
 
 export const getTasksController = async (req, res, next) => {
     try {
-        const { pagination, tasks } = await getTasksService(req.scopedFarmId, req.query);
+        const { pagination, tasks } = await getTasksService(req.scopedFarmId, req.query, req.user);
 
 
         res.status(200).json({
@@ -77,7 +77,7 @@ export const updateMyTaskStatusController = async (req, res, next) => {
 export const getTasksByWorkerController = async (req, res, next) => {
     try {
 
-        const shaped = await getTasksByWorkerService(req.scopedFarmId, req.params.worker_id, req.query);
+        const shaped = await getTasksByWorkerService(req.scopedFarmId, req.params.worker_id, req.query, req.user);
 
         res.status(200).json({
             status: true,
@@ -91,7 +91,7 @@ export const getTasksByWorkerController = async (req, res, next) => {
 
 export const updateAssignmentStatusController = async (req, res, next) => {
     try {
-        const task = await updateAssignmentStatusService(req.scopedFarmId, req.params, req.body);
+        const task = await updateAssignmentStatusService(req.scopedFarmId, req.params, req.body, req.user);
 
         res.status(200).json({
             status: true,
@@ -104,7 +104,7 @@ export const updateAssignmentStatusController = async (req, res, next) => {
 
 export const rateAssignmentController = async (req, res, next) => {
     try {
-        const task = await rateAssignmentService(req.scopedFarmId, req.params, req.body);
+        const task = await rateAssignmentService(req.scopedFarmId, req.params, req.body, req.user);
 
         res.status(200).json({
             status: true,
@@ -132,7 +132,7 @@ export const addAssigneesController = async (req, res, next) => {
 
 export const removeAssigneeController = async (req, res, next) => {
     try {
-        const task = await removeAssigneeService(req.scopedFarmId, req.params);
+        const task = await removeAssigneeService(req.scopedFarmId, req.params, req.user);
 
         res.status(200).json({
             status: true,
@@ -145,7 +145,7 @@ export const removeAssigneeController = async (req, res, next) => {
 
 export const deleteTaskController = async (req, res, next) => {
     try {
-        await deleteTaskService(req.scopedFarmId, req.params.id);
+        await deleteTaskService(req.scopedFarmId, req.params.id, req.user);
 
         res.status(200).json({
             status: true,

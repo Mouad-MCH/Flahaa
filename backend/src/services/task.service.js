@@ -1,8 +1,26 @@
 import Task from "../models/Task.js";
 import Worker from "../models/Worker.js";
 import { authorizeWorkersForTask } from "./workerAssignmentAuth.service.js";
+import { buildWorkerScope } from "../utils/workerScope.js";
 import { POPULATE_ASSIGNEE, POPULATE_ASSIGNER } from '../utils/constant.js'
 
+
+const getAssignmentWorkerId = (assignment) => String(assignment.worker_id?._id ?? assignment.worker_id);
+
+const toPlainTask = (task) => (typeof task.toObject === 'function' ? task.toObject() : task);
+
+const shapeAssignmentsForSupervisor = (task, accessibleWorkerIds) => {
+    const plain = toPlainTask(task);
+    return {
+        ...plain,
+        assignments: plain.assignments.filter((a) => accessibleWorkerIds.has(getAssignmentWorkerId(a))),
+    };
+};
+
+const getAccessibleWorkerIdSet = async (farm_id, user) => {
+    const workers = await Worker.find(buildWorkerScope(farm_id, user)).select('_id');
+    return new Set(workers.map((w) => String(w._id)));
+};
 
 export const createTaskService = async (farm_id, user, data) => {
     const { worker_ids: rawWorkerIds, title, description, date } = data;
@@ -43,13 +61,12 @@ export const createTaskService = async (farm_id, user, data) => {
     return task
 }
 
-export const getTasksService = async (farm_id, reqQuery) => {
+export const getTasksService = async (farm_id, reqQuery, user) => {
     const { date, worker_id, status, page = 1, limit= 50 } = reqQuery;
     const skip = (page - 1) * limit;
 
     const query = { farm_id }
 
-    if(worker_id) query['assignments.worker_id'] = worker_id;
     if(status) query.status = status;
 
     if(date) {
@@ -57,6 +74,24 @@ export const getTasksService = async (farm_id, reqQuery) => {
         const nextDay = new Date(d);
         nextDay.setDate(nextDay.getDate() + 1);
         query.date = {$gte: d, $lt: nextDay };
+    }
+
+    let accessibleWorkerIds = null;
+
+    if(user.role === 'supervisor') {
+        const workers = await Worker.find(buildWorkerScope(farm_id, user)).select('_id');
+        accessibleWorkerIds = workers.map((w) => String(w._id));
+
+        if(worker_id && !accessibleWorkerIds.includes(String(worker_id))) {
+            return {
+                pagination: { total: 0, page, limit, pages: 0 },
+                tasks: [],
+            };
+        }
+
+        query['assignments.worker_id'] = worker_id || { $in: accessibleWorkerIds };
+    } else if(worker_id) {
+        query['assignments.worker_id'] = worker_id;
     }
 
     const [total, tasks] = await Promise.all([
@@ -81,11 +116,13 @@ export const getTasksService = async (farm_id, reqQuery) => {
         pages: Math.ceil(total / limit)
     }
 
-
+    const tasksForUser = accessibleWorkerIds
+        ? tasks.map((t) => shapeAssignmentsForSupervisor(t, new Set(accessibleWorkerIds)))
+        : tasks;
 
     return {
         pagination,
-        tasks
+        tasks: tasksForUser
     }
 }
 
@@ -179,8 +216,19 @@ export const updateMyTaskStatusService = async (farm_id, worker_id, task_id, { s
     }
 }
 
-export const getTasksByWorkerService = async (farm_id, worker_id, reqQuery) => {
+export const getTasksByWorkerService = async (farm_id, worker_id, reqQuery, user) => {
     const { month, year, status } = reqQuery;
+
+    const worker = await Worker.findOne({
+        ...buildWorkerScope(farm_id, user),
+        _id: worker_id,
+    });
+
+    if(!worker) {
+        const error = new Error('Worker not found or not accessible');
+        error.statusCode = 404;
+        throw error;
+    }
 
     const query = {
         farm_id,
@@ -209,7 +257,18 @@ export const getTasksByWorkerService = async (farm_id, worker_id, reqQuery) => {
     return shaped
 }
 
-export const updateAssignmentStatusService = async (farm_id, { id, worker_id }, { status }) => {
+export const updateAssignmentStatusService = async (farm_id, { id, worker_id }, { status }, user) => {
+    const worker = await Worker.findOne({
+        ...buildWorkerScope(farm_id, user),
+        _id: worker_id,
+    });
+
+    if(!worker) {
+        const error = new Error('Worker not found or not accessible');
+        error.statusCode = 404;
+        throw error;
+    }
+
     const task = await Task.findOne({
         _id: id,
         farm_id,
@@ -230,10 +289,26 @@ export const updateAssignmentStatusService = async (farm_id, { id, worker_id }, 
     await task.save();
     await task.populate([POPULATE_ASSIGNEE, POPULATE_ASSIGNER]);
 
+    if(user.role !== 'admin') {
+        const accessibleWorkerIds = await getAccessibleWorkerIdSet(farm_id, user);
+        return shapeAssignmentsForSupervisor(task, accessibleWorkerIds);
+    }
+
     return task
 }
 
-export const rateAssignmentService = async (farm_id, { id, worker_id }, { rating, note }) => {
+export const rateAssignmentService = async (farm_id, { id, worker_id }, { rating, note }, user) => {
+    const worker = await Worker.findOne({
+        ...buildWorkerScope(farm_id, user),
+        _id: worker_id,
+    });
+
+    if(!worker) {
+        const error = new Error('Worker not found or not accessible');
+        error.statusCode = 404;
+        throw error;
+    }
+
     const task = await Task.findOne({
         _id: id,
         farm_id,
@@ -252,6 +327,11 @@ export const rateAssignmentService = async (farm_id, { id, worker_id }, { rating
     if(note !== undefined) assignment.note = note;
     await task.save();
     await task.populate([POPULATE_ASSIGNEE, POPULATE_ASSIGNER]);
+
+    if(user.role !== 'admin') {
+        const accessibleWorkerIds = await getAccessibleWorkerIdSet(farm_id, user);
+        return shapeAssignmentsForSupervisor(task, accessibleWorkerIds);
+    }
 
     return task
 }
@@ -305,12 +385,28 @@ export const addAssigneesService = async (farm_id, reqBody, task_id, user) => {
         POPULATE_ASSIGNER
     ]);
 
+    if(user.role !== 'admin') {
+        const accessibleWorkerIds = await getAccessibleWorkerIdSet(farm_id, user);
+        return shapeAssignmentsForSupervisor(task, accessibleWorkerIds);
+    }
+
     return task
 }
 
-export const removeAssigneeService = async (farm_id, reqParams) => {
+export const removeAssigneeService = async (farm_id, reqParams, user) => {
 
     const { id, worker_id } = reqParams;
+
+    const worker = await Worker.findOne({
+        ...buildWorkerScope(farm_id, user),
+        _id: worker_id,
+    });
+
+    if(!worker) {
+        const error = new Error('Worker not found or not accessible');
+        error.statusCode = 404;
+        throw error;
+    }
 
     const task = await Task.findOne({
         _id: id,
@@ -343,15 +439,22 @@ export const removeAssigneeService = async (farm_id, reqParams) => {
         POPULATE_ASSIGNER
     ]);
 
+    if(user.role !== 'admin') {
+        const accessibleWorkerIds = await getAccessibleWorkerIdSet(farm_id, user);
+        return shapeAssignmentsForSupervisor(task, accessibleWorkerIds);
+    }
 
     return task
 }
 
-export const deleteTaskService = async (farm_id, task_id) => {
-    const task = await Task.findOneAndDelete({
-        _id: task_id,
-        farm_id
-    });
+export const deleteTaskService = async (farm_id, task_id, user) => {
+    const query = { _id: task_id, farm_id };
+
+    if(user.role !== 'admin') {
+        query.assigned_by = user._id;
+    }
+
+    const task = await Task.findOneAndDelete(query);
 
     if(!task) {
         const error = new Error('Task not found');

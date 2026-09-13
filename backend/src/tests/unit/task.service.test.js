@@ -29,12 +29,17 @@ vi.mock('../../models/Task.js', () => ({
 vi.mock('../../models/Worker.js', () => ({
   default: {
     find: vi.fn(),
+    findOne: vi.fn(),
   },
 }));
 
 vi.mock('../../services/workerAssignmentAuth.service.js', () => ({
   authorizeWorkersForTask: vi.fn(),
 }));
+
+const admin = { _id: 'admin-1', role: 'admin' };
+const supervisorA = { _id: 'sup-a', role: 'supervisor' };
+const supervisorB = { _id: 'sup-b', role: 'supervisor' };
 
 const queryMock = (resolvedValue) => {
   const query = {
@@ -141,7 +146,7 @@ describe('createTaskService', () => {
 describe('getTasksService', () => {
   const farmId = 'farm-1';
 
-  it('builds the query from worker_id, status and date, and paginates', async () => {
+  it('builds the query from worker_id, status and date, and paginates (admin)', async () => {
     Task.countDocuments.mockResolvedValueOnce(1);
     Task.find.mockReturnValueOnce(queryMock([{ _id: 't1' }]));
 
@@ -151,7 +156,7 @@ describe('getTasksService', () => {
       date: '2026-08-25',
       page: 2,
       limit: 10,
-    });
+    }, admin);
 
     const expectedQuery = {
       farm_id: farmId,
@@ -170,9 +175,56 @@ describe('getTasksService', () => {
     const query = queryMock([]);
     Task.find.mockReturnValueOnce(query);
 
-    await getTasksService(farmId, {});
+    await getTasksService(farmId, {}, admin);
 
     expect(query.sort).toHaveBeenCalledWith({ date: -1, createdAt: -1 });
+  });
+
+  it('restricts a supervisor\'s task list to tasks involving their own workers', async () => {
+    Worker.find.mockReturnValueOnce({ select: vi.fn().mockResolvedValue([{ _id: 'w1' }, { _id: 'w2' }]) });
+    Task.countDocuments.mockResolvedValueOnce(0);
+    Task.find.mockReturnValueOnce(queryMock([]));
+
+    await getTasksService(farmId, {}, supervisorA);
+
+    expect(Worker.find).toHaveBeenCalledWith({ farm_id: farmId, supervisor_id: supervisorA._id });
+    expect(Task.find).toHaveBeenCalledWith({
+      farm_id: farmId,
+      'assignments.worker_id': { $in: ['w1', 'w2'] },
+    });
+  });
+
+  it('returns an empty result without querying tasks when a supervisor filters by a worker they do not own', async () => {
+    Worker.find.mockReturnValueOnce({ select: vi.fn().mockResolvedValue([{ _id: 'w1' }]) });
+
+    const result = await getTasksService(farmId, { worker_id: 'w-other' }, supervisorA);
+
+    expect(result).toEqual({ pagination: { total: 0, page: 1, limit: 50, pages: 0 }, tasks: [] });
+    expect(Task.find).not.toHaveBeenCalled();
+  });
+
+  it('hides assignments belonging to other supervisors from a mixed task', async () => {
+    Worker.find.mockReturnValueOnce({ select: vi.fn().mockResolvedValue([{ _id: 'wA' }]) });
+    const mixedTask = {
+      _id: 't1',
+      title: 'Harvest olives',
+      assignments: [
+        { worker_id: 'wA', status: 'pending' },
+        { worker_id: 'wB', status: 'pending' },
+      ],
+    };
+    Task.countDocuments.mockResolvedValueOnce(1);
+    Task.find.mockReturnValueOnce(queryMock([mixedTask]));
+
+    const result = await getTasksService(farmId, {}, supervisorA);
+
+    expect(result.tasks).toEqual([
+      {
+        _id: 't1',
+        title: 'Harvest olives',
+        assignments: [{ worker_id: 'wA', status: 'pending' }],
+      },
+    ]);
   });
 });
 
@@ -265,11 +317,34 @@ describe('getTasksByWorkerService', () => {
   const farmId = 'farm-1';
   const workerId = 'w1';
 
+  it('throws a 404 when the worker is not accessible to the requesting user', async () => {
+    Worker.findOne.mockResolvedValueOnce(null);
+
+    await expect(
+      getTasksByWorkerService(farmId, workerId, {}, supervisorB)
+    ).rejects.toMatchObject({ statusCode: 404, message: 'Worker not found or not accessible' });
+    expect(Task.find).not.toHaveBeenCalled();
+  });
+
+  it('scopes the worker check to the requesting supervisor', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: workerId });
+    Task.find.mockReturnValueOnce(queryMock([]));
+
+    await getTasksByWorkerService(farmId, workerId, {}, supervisorA);
+
+    expect(Worker.findOne).toHaveBeenCalledWith({
+      farm_id: farmId,
+      supervisor_id: supervisorA._id,
+      _id: workerId,
+    });
+  });
+
   it('adds a month/year date range only when both are given', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: workerId });
     const query = queryMock([]);
     Task.find.mockReturnValueOnce(query);
 
-    await getTasksByWorkerService(farmId, workerId, { year: 2026, month: 8 });
+    await getTasksByWorkerService(farmId, workerId, { year: 2026, month: 8 }, admin);
 
     expect(Task.find).toHaveBeenCalledWith({
       farm_id: farmId,
@@ -279,6 +354,7 @@ describe('getTasksByWorkerService', () => {
   });
 
   it('filters the returned tasks by the worker\'s own assignment status', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: workerId });
     const done = makeTaskDoc({
       _id: 't1',
       assignmentFor: vi.fn().mockReturnValue({ status: 'done' }),
@@ -291,7 +367,7 @@ describe('getTasksByWorkerService', () => {
     });
     Task.find.mockReturnValueOnce(queryMock([done, pending]));
 
-    const result = await getTasksByWorkerService(farmId, workerId, { status: 'done' });
+    const result = await getTasksByWorkerService(farmId, workerId, { status: 'done' }, admin);
 
     expect(result).toEqual([{ _id: 't1', my_assignment: { status: 'done' } }]);
   });
@@ -300,20 +376,31 @@ describe('getTasksByWorkerService', () => {
 describe('updateAssignmentStatusService', () => {
   const farmId = 'farm-1';
 
+  it('throws a 404 when the worker is not accessible to the requesting user', async () => {
+    Worker.findOne.mockResolvedValueOnce(null);
+
+    await expect(
+      updateAssignmentStatusService(farmId, { id: 't1', worker_id: 'w1' }, { status: 'done' }, supervisorB)
+    ).rejects.toMatchObject({ statusCode: 404, message: 'Worker not found or not accessible' });
+    expect(Task.findOne).not.toHaveBeenCalled();
+  });
+
   it('throws a 404 when no task matches the given task/worker on this farm', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w1' });
     Task.findOne.mockResolvedValueOnce(null);
 
     await expect(
-      updateAssignmentStatusService(farmId, { id: 't1', worker_id: 'w1' }, { status: 'done' })
+      updateAssignmentStatusService(farmId, { id: 't1', worker_id: 'w1' }, { status: 'done' }, admin)
     ).rejects.toMatchObject({ statusCode: 404, message: 'Task not found' });
   });
 
-  it('updates the assignment status and recomputes the task status', async () => {
+  it('updates the assignment status and recomputes the task status (admin)', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w1' });
     const assignment = { status: 'pending', completed_at: null };
     const taskDoc = makeTaskDoc({ assignmentFor: vi.fn().mockReturnValue(assignment) });
     Task.findOne.mockResolvedValueOnce(taskDoc);
 
-    const result = await updateAssignmentStatusService(farmId, { id: 't1', worker_id: 'w1' }, { status: 'done' });
+    const result = await updateAssignmentStatusService(farmId, { id: 't1', worker_id: 'w1' }, { status: 'done' }, admin);
 
     expect(assignment.status).toBe('done');
     expect(assignment.completed_at).toBeInstanceOf(Date);
@@ -321,25 +408,53 @@ describe('updateAssignmentStatusService', () => {
     expect(taskDoc.save).toHaveBeenCalled();
     expect(result).toBe(taskDoc);
   });
+
+  it('lets a supervisor update their own worker\'s assignment', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w1' });
+    Worker.find.mockReturnValueOnce({ select: vi.fn().mockResolvedValue([{ _id: 'w1' }]) });
+    const assignment = { status: 'pending', completed_at: null };
+    const taskDoc = makeTaskDoc({ assignmentFor: vi.fn().mockReturnValue(assignment) });
+    Task.findOne.mockResolvedValueOnce(taskDoc);
+
+    await updateAssignmentStatusService(farmId, { id: 't1', worker_id: 'w1' }, { status: 'done' }, supervisorA);
+
+    expect(Worker.findOne).toHaveBeenCalledWith({
+      farm_id: farmId,
+      supervisor_id: supervisorA._id,
+      _id: 'w1',
+    });
+    expect(assignment.status).toBe('done');
+  });
 });
 
 describe('rateAssignmentService', () => {
   const farmId = 'farm-1';
 
+  it('throws a 404 when the worker is not accessible to the requesting user', async () => {
+    Worker.findOne.mockResolvedValueOnce(null);
+
+    await expect(
+      rateAssignmentService(farmId, { id: 't1', worker_id: 'w1' }, { rating: 5 }, supervisorB)
+    ).rejects.toMatchObject({ statusCode: 404, message: 'Worker not found or not accessible' });
+    expect(Task.findOne).not.toHaveBeenCalled();
+  });
+
   it('throws a 404 when no task matches the given task/worker on this farm', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w1' });
     Task.findOne.mockResolvedValueOnce(null);
 
     await expect(
-      rateAssignmentService(farmId, { id: 't1', worker_id: 'w1' }, { rating: 5 })
+      rateAssignmentService(farmId, { id: 't1', worker_id: 'w1' }, { rating: 5 }, admin)
     ).rejects.toMatchObject({ statusCode: 404, message: 'Task not found' });
   });
 
   it('sets the rating and only updates the note when provided', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w1' });
     const assignment = { rating: null, note: 'old note' };
     const taskDoc = makeTaskDoc({ assignmentFor: vi.fn().mockReturnValue(assignment) });
     Task.findOne.mockResolvedValueOnce(taskDoc);
 
-    await rateAssignmentService(farmId, { id: 't1', worker_id: 'w1' }, { rating: 4 });
+    await rateAssignmentService(farmId, { id: 't1', worker_id: 'w1' }, { rating: 4 }, admin);
 
     expect(assignment.rating).toBe(4);
     expect(assignment.note).toBe('old note');
@@ -347,13 +462,31 @@ describe('rateAssignmentService', () => {
   });
 
   it('overwrites the note when explicitly provided', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w1' });
     const assignment = { rating: null, note: 'old note' };
     const taskDoc = makeTaskDoc({ assignmentFor: vi.fn().mockReturnValue(assignment) });
     Task.findOne.mockResolvedValueOnce(taskDoc);
 
-    await rateAssignmentService(farmId, { id: 't1', worker_id: 'w1' }, { rating: 4, note: 'great job' });
+    await rateAssignmentService(farmId, { id: 't1', worker_id: 'w1' }, { rating: 4, note: 'great job' }, admin);
 
     expect(assignment.note).toBe('great job');
+  });
+
+  it('lets a supervisor rate their own worker but not another supervisor\'s', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w1' });
+    Worker.find.mockReturnValueOnce({ select: vi.fn().mockResolvedValue([{ _id: 'w1' }]) });
+    const assignment = { rating: null, note: '' };
+    const taskDoc = makeTaskDoc({ assignmentFor: vi.fn().mockReturnValue(assignment) });
+    Task.findOne.mockResolvedValueOnce(taskDoc);
+
+    await rateAssignmentService(farmId, { id: 't1', worker_id: 'w1' }, { rating: 5 }, supervisorA);
+
+    expect(Worker.findOne).toHaveBeenCalledWith({
+      farm_id: farmId,
+      supervisor_id: supervisorA._id,
+      _id: 'w1',
+    });
+    expect(assignment.rating).toBe(5);
   });
 });
 
@@ -383,6 +516,7 @@ describe('addAssigneesService', () => {
     Task.findOne.mockResolvedValueOnce(makeTaskDoc());
     Worker.find.mockResolvedValueOnce([{ _id: 'w1' }]);
     authorizeWorkersForTask.mockResolvedValueOnce({ authorized: ['w1'], unauthorized: [] });
+    Worker.find.mockReturnValueOnce({ select: vi.fn().mockResolvedValue([{ _id: 'w1' }]) });
 
     await addAssigneesService(farmId, { worker_ids: ['w1', 'w1'] }, 't1', user);
 
@@ -394,6 +528,7 @@ describe('addAssigneesService', () => {
     Task.findOne.mockResolvedValueOnce(taskDoc);
     Worker.find.mockResolvedValueOnce([{ _id: 'w1' }, { _id: 'w2' }]);
     authorizeWorkersForTask.mockResolvedValueOnce({ authorized: ['w2'], unauthorized: [] });
+    Worker.find.mockReturnValueOnce({ select: vi.fn().mockResolvedValue([{ _id: 'w1' }, { _id: 'w2' }]) });
 
     await addAssigneesService(farmId, { worker_ids: ['w1', 'w2'] }, 't1', user);
 
@@ -419,15 +554,26 @@ describe('addAssigneesService', () => {
 describe('removeAssigneeService', () => {
   const farmId = 'farm-1';
 
+  it('throws a 404 when the worker is not accessible to the requesting user', async () => {
+    Worker.findOne.mockResolvedValueOnce(null);
+
+    await expect(
+      removeAssigneeService(farmId, { id: 't1', worker_id: 'w1' }, supervisorB)
+    ).rejects.toMatchObject({ statusCode: 404, message: 'Worker not found or not accessible' });
+    expect(Task.findOne).not.toHaveBeenCalled();
+  });
+
   it('throws a 404 when the task does not exist on this farm', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w1' });
     Task.findOne.mockResolvedValueOnce(null);
 
     await expect(
-      removeAssigneeService(farmId, { id: 't1', worker_id: 'w1' })
+      removeAssigneeService(farmId, { id: 't1', worker_id: 'w1' }, admin)
     ).rejects.toMatchObject({ statusCode: 404, message: 'Task not found' });
   });
 
   it('throws a 404 when the worker has no assignment on this task', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w3' });
     const taskDoc = makeTaskDoc({
       assignments: [{ worker_id: 'w1' }, { worker_id: 'w2' }],
       assignmentFor: vi.fn().mockReturnValue(undefined),
@@ -435,12 +581,13 @@ describe('removeAssigneeService', () => {
     Task.findOne.mockResolvedValueOnce(taskDoc);
 
     await expect(
-      removeAssigneeService(farmId, { id: 't1', worker_id: 'w3' })
+      removeAssigneeService(farmId, { id: 't1', worker_id: 'w3' }, admin)
     ).rejects.toMatchObject({ statusCode: 404, message: 'Task not found' });
     expect(taskDoc.save).not.toHaveBeenCalled();
   });
 
   it('throws a 400 when trying to remove the last assignee', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w1' });
     const taskDoc = makeTaskDoc({
       assignments: [{ worker_id: 'w1' }],
       assignmentFor: vi.fn().mockReturnValue({ worker_id: 'w1' }),
@@ -448,7 +595,7 @@ describe('removeAssigneeService', () => {
     Task.findOne.mockResolvedValueOnce(taskDoc);
 
     await expect(
-      removeAssigneeService(farmId, { id: 't1', worker_id: 'w1' })
+      removeAssigneeService(farmId, { id: 't1', worker_id: 'w1' }, admin)
     ).rejects.toMatchObject({
       statusCode: 400,
       message: 'Cannot remove the last worker — delete the task instead',
@@ -456,17 +603,37 @@ describe('removeAssigneeService', () => {
   });
 
   it('removes the matching assignment and recomputes status', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w1' });
     const taskDoc = makeTaskDoc({
       assignments: [{ worker_id: 'w1' }, { worker_id: 'w2' }],
       assignmentFor: vi.fn().mockReturnValue({ worker_id: 'w1' }),
     });
     Task.findOne.mockResolvedValueOnce(taskDoc);
 
-    await removeAssigneeService(farmId, { id: 't1', worker_id: 'w1' });
+    await removeAssigneeService(farmId, { id: 't1', worker_id: 'w1' }, admin);
 
     expect(taskDoc.assignments).toEqual([{ worker_id: 'w2' }]);
     expect(taskDoc.recomputeStatus).toHaveBeenCalled();
     expect(taskDoc.save).toHaveBeenCalled();
+  });
+
+  it('lets a supervisor remove only their own worker\'s assignment', async () => {
+    Worker.findOne.mockResolvedValueOnce({ _id: 'w1' });
+    Worker.find.mockReturnValueOnce({ select: vi.fn().mockResolvedValue([{ _id: 'w1' }]) });
+    const taskDoc = makeTaskDoc({
+      assignments: [{ worker_id: 'w1' }, { worker_id: 'w2' }],
+      assignmentFor: vi.fn().mockReturnValue({ worker_id: 'w1' }),
+    });
+    Task.findOne.mockResolvedValueOnce(taskDoc);
+
+    await removeAssigneeService(farmId, { id: 't1', worker_id: 'w1' }, supervisorA);
+
+    expect(Worker.findOne).toHaveBeenCalledWith({
+      farm_id: farmId,
+      supervisor_id: supervisorA._id,
+      _id: 'w1',
+    });
+    expect(taskDoc.assignments).toEqual([{ worker_id: 'w2' }]);
   });
 });
 
@@ -476,18 +643,39 @@ describe('deleteTaskService', () => {
   it('throws a 404 when no task is found to delete', async () => {
     Task.findOneAndDelete.mockResolvedValueOnce(null);
 
-    await expect(deleteTaskService(farmId, 't1')).rejects.toMatchObject({
+    await expect(deleteTaskService(farmId, 't1', admin)).rejects.toMatchObject({
       statusCode: 404,
       message: 'Task not found',
     });
   });
 
-  it('returns the task id when deleted', async () => {
+  it('an admin can delete any task on the farm', async () => {
     Task.findOneAndDelete.mockResolvedValueOnce({ _id: 't1' });
 
-    const result = await deleteTaskService(farmId, 't1');
+    const result = await deleteTaskService(farmId, 't1', admin);
 
     expect(Task.findOneAndDelete).toHaveBeenCalledWith({ _id: 't1', farm_id: farmId });
     expect(result).toBe('t1');
+  });
+
+  it('a supervisor can only delete a task they created', async () => {
+    Task.findOneAndDelete.mockResolvedValueOnce({ _id: 't1' });
+
+    await deleteTaskService(farmId, 't1', supervisorA);
+
+    expect(Task.findOneAndDelete).toHaveBeenCalledWith({
+      _id: 't1',
+      farm_id: farmId,
+      assigned_by: supervisorA._id,
+    });
+  });
+
+  it('throws a 404 when a supervisor tries to delete a task they did not create', async () => {
+    Task.findOneAndDelete.mockResolvedValueOnce(null);
+
+    await expect(deleteTaskService(farmId, 't1', supervisorB)).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Task not found',
+    });
   });
 });
