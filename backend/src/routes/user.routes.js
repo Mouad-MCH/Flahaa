@@ -118,7 +118,9 @@ router.get('/supervisors/:id', validateParams(supervisorIdSchema), getSupervisor
  *     summary: Deactivate a supervisor
  *     description: >
  *       Soft-deletes a supervisor by setting their status to `inactive`
- *       (the account and its data are not removed).
+ *       (the account and its data are not removed). Any workers currently
+ *       assigned to this supervisor are unassigned (supervisor_id set to null),
+ *       not deleted or reassigned.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -147,7 +149,7 @@ router.get('/supervisors/:id', validateParams(supervisorIdSchema), getSupervisor
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: Supervisor deleted successfully
+ *                   example: Supervisor deactivated successfully
  *       400:
  *         $ref: '#/components/responses/ValidationError'
  *       401:
@@ -169,7 +171,11 @@ router.delete('/supervisors/:id', validateParams(supervisorIdSchema), deleteSupe
  *   put:
  *     tags: [Users]
  *     summary: Update a supervisor
- *     description: Updates a supervisor's name, email, phone, and/or status.
+ *     description: >
+ *       Updates a supervisor's name, email, phone, and/or status. If the
+ *       update results in status `inactive`, any workers currently assigned
+ *       to this supervisor are unassigned (supervisor_id set to null).
+ *       Reactivating a supervisor does not restore their previous workers.
  *     security:
  *       - bearerAuth: []
  *     parameters:

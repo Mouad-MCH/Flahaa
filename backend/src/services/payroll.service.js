@@ -60,53 +60,16 @@ export const calculatePayrollService = async (farm_id, data) => {
     const daily_rate = worker.daily_rate;
     const base_salary = daily_rate * (present[0]?.total || 0);
 
-    const advances_total = await Worker.aggregate([
-        {
-            $match: {
-                _id: workerObjectId,
-                farm_id: farmObjectId,
-                advances : {
-                    $elemMatch: {
-                        date: {
-                            $gte: start,
-                            $lt: end
-                        }
-                    }
-                }
-            }
-        },
-
-        {
-            $unwind: '$advances',
-        },
-
-        {
-            $match: {
-                'advances.date': {
-                    $gte: start,
-                    $lt: end
-                }
-            }
-        },
-
-        {
-            $group: {
-                _id: null,
-                total: {
-                    $sum: '$advances.amount'
-                }
-            }
-        }
-    ]);
-
+    const advances_total = 0;
 
     const net_salary = Math.max(
         0,
-        base_salary + bonuses - (advances_total[0]?.total || 0) - deductions
+        base_salary + bonuses - deductions
     );
 
     const payroll = await Payroll.findOneAndUpdate(
         {
+            farm_id,
             worker_id,
             month,
             year
@@ -121,7 +84,7 @@ export const calculatePayrollService = async (farm_id, data) => {
             base_salary,
             bonuses,
             deductions,
-            advances_total: advances_total[0]?.total || 0,
+            advances_total,
             net_salary,
             notes,
             calculated_at: new Date(),
@@ -250,7 +213,7 @@ export const getPayrollByWorkerService = async (farm_id, reqParams) => {
     return payroll
 }
 
-export const updatePayrollStausService = async (farm_id, payrollId, data) => {
+export const updatePayrollStatusService = async (farm_id, payrollId, data) => {
     const { status } = data;
 
     const update = { status };
@@ -289,6 +252,7 @@ export const getMyPayrollsService = async (user, reqQuery) => {
 
     const query = { worker_id: user.worker_id };
 
+    if(user.farm_id) query.farm_id = user.farm_id;
     if(month) query.month = month;
     if(year) query.year = year;
 

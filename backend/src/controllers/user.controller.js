@@ -43,7 +43,7 @@ export const deleteSupervisorController = async (req, res, next) => {
 
     res.status(200).json({
       status: true,
-      message: "Supervisor deleted successfully",
+      message: "Supervisor deactivated successfully",
     });
 
   } catch (error) {

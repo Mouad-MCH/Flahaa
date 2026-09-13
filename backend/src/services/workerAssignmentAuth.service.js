@@ -13,7 +13,7 @@ export const authorizeWorkersForTask = async (workers, actingUser) => {
     const unauthorized = [];
 
     for (const worker of workers) {
-        if(!worker.supervisor_id || String(worker.supervisor_id) === String(actingUser._id)) {
+        if(worker.supervisor_id && String(worker.supervisor_id) === String(actingUser._id)) {
             authorized.push(String(worker._id));
             continue
         }

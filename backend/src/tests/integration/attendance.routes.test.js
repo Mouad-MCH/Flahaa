@@ -162,10 +162,10 @@ describe("Attendance routes", () => {
       });
     });
 
-    it("creates an attendance record for a supervisor scoped to their own farm", async () => {
+    it("creates an attendance record for a supervisor scoped to their own worker", async () => {
       const { farm } = await createAdminWithFarm();
-      const { token } = await createSupervisor(farm._id);
-      const worker = await createFarmWorker(farm._id);
+      const { supervisor, token } = await createSupervisor(farm._id);
+      const worker = await createFarmWorker(farm._id, { supervisor_id: supervisor._id });
 
       const res = await request(app)
         .post("/api/attendance")
@@ -174,6 +174,20 @@ describe("Attendance routes", () => {
 
       expect(res.status).toBe(201);
       expect(res.body.data.farm_id).toBe(String(farm._id));
+    });
+
+    it("rejects attendance creation for another supervisor's worker", async () => {
+      const { farm } = await createAdminWithFarm();
+      const { supervisor: ownerSupervisor } = await createSupervisor(farm._id);
+      const { token } = await createSupervisor(farm._id);
+      const worker = await createFarmWorker(farm._id, { supervisor_id: ownerSupervisor._id });
+
+      const res = await request(app)
+        .post("/api/attendance")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ worker_id: String(worker._id), date: "2026-08-18" });
+
+      expect(res.status).toBe(404);
     });
 
     it("rejects a duplicate attendance record for the same worker and date", async () => {
@@ -235,7 +249,7 @@ describe("Attendance routes", () => {
       expect(res.body.data.recorded).toBe(2);
       expect(res.body.data.failed).toBe(1);
       expect(res.body.data.errors).toEqual([
-        { worker_id: String(fakeWorkerId), message: "Worker not found on this farm" },
+        { worker_id: String(fakeWorkerId), message: "Worker not found or not accessible" },
       ]);
     });
 
@@ -273,6 +287,53 @@ describe("Attendance routes", () => {
 
       const record = await Attendance.findOne({ worker_id: worker._id });
       expect(record.status).toBe("excused");
+    });
+
+    it("accepts a supervisor's own workers in a bulk request", async () => {
+      const { farm } = await createAdminWithFarm();
+      const { supervisor, token } = await createSupervisor(farm._id);
+      const workerA = await createFarmWorker(farm._id, { name: "Alice", supervisor_id: supervisor._id });
+      const workerB = await createFarmWorker(farm._id, { name: "Bob", supervisor_id: supervisor._id });
+
+      const res = await request(app)
+        .post("/api/attendance/bulk")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          date: "2026-08-18",
+          records: [
+            { worker_id: String(workerA._id), status: "present" },
+            { worker_id: String(workerB._id), status: "absent" },
+          ],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.recorded).toBe(2);
+      expect(res.body.data.failed).toBe(0);
+    });
+
+    it("rejects another supervisor's worker in a bulk request", async () => {
+      const { farm } = await createAdminWithFarm();
+      const { supervisor: otherSupervisor } = await createSupervisor(farm._id);
+      const { token } = await createSupervisor(farm._id);
+      const inaccessibleWorker = await createFarmWorker(farm._id, { supervisor_id: otherSupervisor._id });
+
+      const res = await request(app)
+        .post("/api/attendance/bulk")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          date: "2026-08-18",
+          records: [{ worker_id: String(inaccessibleWorker._id), status: "present" }],
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.recorded).toBe(0);
+      expect(res.body.data.failed).toBe(1);
+      expect(res.body.data.errors).toEqual([
+        { worker_id: String(inaccessibleWorker._id), message: "Worker not found or not accessible" },
+      ]);
+
+      const count = await Attendance.countDocuments({ worker_id: inaccessibleWorker._id });
+      expect(count).toBe(0);
     });
   });
 
@@ -317,6 +378,40 @@ describe("Attendance routes", () => {
       expect(res.status).toBe(200);
       expect(res.body.data.total_unrecorded).toBe(0);
     });
+
+    it("returns only the supervisor's own workers, recorded and unrecorded", async () => {
+      const { farm } = await createAdminWithFarm();
+      const { supervisor, token } = await createSupervisor(farm._id);
+      const { supervisor: otherSupervisor } = await createSupervisor(farm._id);
+
+      const ownRecorded = await createFarmWorker(farm._id, { name: "Own Recorded", supervisor_id: supervisor._id });
+      const ownUnrecorded = await createFarmWorker(farm._id, { name: "Own Unrecorded", supervisor_id: supervisor._id });
+      const otherWorker = await createFarmWorker(farm._id, { name: "Other Worker", supervisor_id: otherSupervisor._id });
+
+      await request(app)
+        .post("/api/attendance")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ worker_id: String(ownRecorded._id), date: "2026-08-18" });
+
+      // Another supervisor's worker has attendance recorded on the same date.
+      await Attendance.create({
+        worker_id: otherWorker._id,
+        farm_id: farm._id,
+        date: new Date("2026-08-18T00:00:00.000Z"),
+        status: "present",
+        recorded_by: otherSupervisor._id,
+      });
+
+      const res = await request(app)
+        .get("/api/attendance?date=2026-08-18")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.total_recorded).toBe(1);
+      expect(res.body.data.records[0].worker_id._id).toBe(String(ownRecorded._id));
+      expect(res.body.data.total_unrecorded).toBe(1);
+      expect(res.body.data.unrecorded_workers[0]._id).toBe(String(ownUnrecorded._id));
+    });
   });
 
   describe("GET /api/attendance/summary", () => {
@@ -347,6 +442,59 @@ describe("Attendance routes", () => {
         .set("Authorization", `Bearer ${token}`);
 
       expect(res.status).toBe(400);
+    });
+
+    it("admin monthly summary includes attendance for all farm workers", async () => {
+      const { token, farm } = await createAdminWithFarm();
+      const { supervisor: supA } = await createSupervisor(farm._id);
+      const { supervisor: supB } = await createSupervisor(farm._id);
+      const workerA = await createFarmWorker(farm._id, { supervisor_id: supA._id });
+      const workerB = await createFarmWorker(farm._id, { supervisor_id: supB._id });
+
+      const today = new Date().toISOString().slice(0, 10);
+      await request(app)
+        .post(`/api/attendance?farm_id=${farm._id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ worker_id: String(workerA._id), date: today, status: "present" });
+      await request(app)
+        .post(`/api/attendance?farm_id=${farm._id}`)
+        .set("Authorization", `Bearer ${token}`)
+        .send({ worker_id: String(workerB._id), date: today, status: "present" });
+
+      const res = await request(app)
+        .get(`/api/attendance/summary?farm_id=${farm._id}&months=1`)
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data[0].total).toBe(2);
+    });
+
+    it("supervisor monthly summary includes only their own workers", async () => {
+      const { farm } = await createAdminWithFarm();
+      const { supervisor: supA, token: tokenA } = await createSupervisor(farm._id);
+      const { supervisor: supB } = await createSupervisor(farm._id);
+      const workerA = await createFarmWorker(farm._id, { supervisor_id: supA._id });
+      const workerB = await createFarmWorker(farm._id, { supervisor_id: supB._id });
+
+      const today = new Date().toISOString().slice(0, 10);
+      await request(app)
+        .post("/api/attendance")
+        .set("Authorization", `Bearer ${tokenA}`)
+        .send({ worker_id: String(workerA._id), date: today, status: "present" });
+      await Attendance.create({
+        worker_id: workerB._id,
+        farm_id: farm._id,
+        date: new Date(`${today}T00:00:00.000Z`),
+        status: "present",
+        recorded_by: supB._id,
+      });
+
+      const res = await request(app)
+        .get("/api/attendance/summary?months=1")
+        .set("Authorization", `Bearer ${tokenA}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data[0].total).toBe(1);
     });
   });
 
@@ -396,6 +544,37 @@ describe("Attendance routes", () => {
       expect(res.status).toBe(200);
       expect(res.body.data.total).toBe(0);
       expect(res.body.data.records).toEqual([]);
+    });
+
+    it("allows a supervisor to view their own worker's attendance history", async () => {
+      const { farm } = await createAdminWithFarm();
+      const { supervisor, token } = await createSupervisor(farm._id);
+      const worker = await createFarmWorker(farm._id, { supervisor_id: supervisor._id });
+
+      await request(app)
+        .post("/api/attendance")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ worker_id: String(worker._id), date: "2026-08-18", status: "present" });
+
+      const res = await request(app)
+        .get(`/api/attendance/${worker._id}?month=8&year=2026`)
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.total).toBe(1);
+    });
+
+    it("returns 404 when a supervisor requests another supervisor's worker history", async () => {
+      const { farm } = await createAdminWithFarm();
+      const { supervisor: otherSupervisor } = await createSupervisor(farm._id);
+      const { token } = await createSupervisor(farm._id);
+      const worker = await createFarmWorker(farm._id, { supervisor_id: otherSupervisor._id });
+
+      const res = await request(app)
+        .get(`/api/attendance/${worker._id}?month=8&year=2026`)
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(res.status).toBe(404);
     });
   });
 });

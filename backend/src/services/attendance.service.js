@@ -1,15 +1,19 @@
 import mongoose from "mongoose";
 import Attendance from "../models/Attendance.js";
 import Worker from "../models/Worker.js";
+import { buildWorkerScope } from "../utils/workerScope.js";
 
 
 
-export const createAttendanceService = async (farm_id, data, userId) => {
+export const createAttendanceService = async (farm_id, data, user) => {
     const { worker_id, date, status, check_in, check_out } = data;
-    
-    const worker = await Worker.findOne({ _id: worker_id, farm_id });
+
+    const worker = await Worker.findOne({
+        ...buildWorkerScope(farm_id, user),
+        _id: worker_id,
+    });
     if(!worker) {
-        const error = new Error('Worker not found on this farm');
+        const error = new Error('Worker not found or not accessible');
         error.statusCode = 404;
         throw error;
     };
@@ -33,7 +37,7 @@ export const createAttendanceService = async (farm_id, data, userId) => {
             status,
             check_in: check_in ? new Date(check_in) : undefined,
             check_out: check_out ? new Date(check_out) : undefined,
-            recorded_by: userId,
+            recorded_by: user._id,
         })
     } catch(err) {
         if(err.code === 11000) {
@@ -47,7 +51,7 @@ export const createAttendanceService = async (farm_id, data, userId) => {
     return attendance
 }
 
-export const bulkCreateAttendanceService = async (farm_id, data, userId) => {
+export const bulkCreateAttendanceService = async (farm_id, data, user) => {
     const { date, records } = data;
 
     const attendanceDate = new Date(date);
@@ -57,18 +61,18 @@ export const bulkCreateAttendanceService = async (farm_id, data, userId) => {
     const errors = [];
 
     const workerIds = records.map(r => r.worker_id);
-    const validWorkers = await Worker.find({ _id: { $in: workerIds }, farm_id });
+    const validWorkers = await Worker.find({
+        ...buildWorkerScope(farm_id, user),
+        _id: { $in: workerIds },
+    });
     const validWorkerIdSet = new Set(validWorkers.map(w => w._id.toString()));
-    const workerNameById = new Map(validWorkers.map(w => [w._id.toString(), w.name]));
-
-    const absentWorkerNames = [];
 
     for(const record of records) {
         try {
             if(!validWorkerIdSet.has(record.worker_id?.toString())) {
-                errors.push({ 
-                    worker_id: record.worker_id, 
-                    message: 'Worker not found on this farm' 
+                errors.push({
+                    worker_id: record.worker_id,
+                    message: 'Worker not found or not accessible'
                 });
 
                 continue;
@@ -79,7 +83,7 @@ export const bulkCreateAttendanceService = async (farm_id, data, userId) => {
                 farm_id,
                 date: attendanceDate,
                 status: record.status || 'present',
-                recorded_by: userId,
+                recorded_by: user._id,
             };
             const unsetFields = {};
 
@@ -113,12 +117,9 @@ export const bulkCreateAttendanceService = async (farm_id, data, userId) => {
             );
 
             results.push(attendance);
-            if((record.status || 'present') === "absent") {
-                absentWorkerNames.push(workerNameById.get(record.worker_id?.toString()))
-            }
 
         } catch(err) {
-           errors.push({ 
+           errors.push({
             worker_id: record.worker_id,
             message: err.message
            });
@@ -134,28 +135,31 @@ export const bulkCreateAttendanceService = async (farm_id, data, userId) => {
 
 }
 
-export const getAttendanceByDateService = async (farm_id, query) => {
+export const getAttendanceByDateService = async (farm_id, query, user) => {
     const { date } = query;
 
     const attendanceDate = new Date(date);
     attendanceDate.setUTCHours(0, 0, 0, 0);
 
+    const accessibleActiveWorkers = await Worker.find({
+        ...buildWorkerScope(farm_id, user),
+        status: 'active'
+    }).select('name CIN avatar');
+
+    const accessibleWorkerIds = accessibleActiveWorkers.map(w => w._id);
+
     const records = await Attendance.find({
         farm_id,
         date: attendanceDate,
+        worker_id: { $in: accessibleWorkerIds },
     })
     .populate('worker_id', "name CIN avatar status")
     .populate('recorded_by', 'name');
 
     records.sort((a, b) => (a.worker_id?.name || '').localeCompare(b.worker_id?.name || '') );
 
-    const allActiveWorkers = await Worker.find({
-        farm_id,
-        status: 'active'
-    }).select('name CIN avatar');
-
     const recordedWorkerIds = records.map(r => r.worker_id?.id?.toString());
-    const unrecordedWorkers = allActiveWorkers.filter(w => !recordedWorkerIds.includes(w._id.toString()));
+    const unrecordedWorkers = accessibleActiveWorkers.filter(w => !recordedWorkerIds.includes(w._id.toString()));
 
     return {
         date: attendanceDate,
@@ -167,7 +171,17 @@ export const getAttendanceByDateService = async (farm_id, query) => {
 
 }
 
-export const getWorkerAttendanceService = async (farm_id, worker_id, { month, year }) => {
+export const getWorkerAttendanceService = async (farm_id, worker_id, { month, year }, user) => {
+
+   const worker = await Worker.findOne({
+        ...buildWorkerScope(farm_id, user),
+        _id: worker_id,
+   });
+   if(!worker) {
+        const error = new Error('Worker not found or not accessible');
+        error.statusCode = 404;
+        throw error;
+   }
 
    const match = {
         farm_id: new mongoose.Types.ObjectId(farm_id),
@@ -265,21 +279,30 @@ export const getWorkerAttendanceService = async (farm_id, worker_id, { month, ye
 
 }
 
-export const getMonthlySummaryService = async (farm_id, months) => {
+export const getMonthlySummaryService = async (farm_id, months, user) => {
   const monthsCount = Math.min(months || 6, 12);
 
   const now = new Date();
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (monthsCount - 1), 1));
 
+  const accessibleWorkers = await Worker.find(buildWorkerScope(farm_id, user)).select('_id');
+  const workerIds = accessibleWorkers.map(w => w._id);
+
   const results = await Attendance.aggregate([
-    { $match: { farm_id, date: { $gte: start } } },
+    {
+      $match: {
+        farm_id: new mongoose.Types.ObjectId(farm_id),
+        date: { $gte: start },
+        worker_id: { $in: workerIds },
+      }
+    },
     {
       $group: {
         _id: {
           year: { $year: "$date" },
           month: { $month: '$date' },
         },
-        
+
         present: {
           $sum: {
             $cond: [
@@ -362,4 +385,3 @@ export const getMonthlySummaryService = async (farm_id, months) => {
   return buckets
 
 }
-
