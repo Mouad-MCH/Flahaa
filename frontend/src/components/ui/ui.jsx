@@ -58,3 +58,49 @@ export function Button({ variant = 'primary', size = 'md', className = '', child
   const cls = ['btn', `btn-${variant}`, size === 'sm' ? 'btn-sm' : '', className].filter(Boolean).join(' ');
   return <button className={cls} {...rest}>{children}</button>;
 }
+
+const PILL_STYLES = {
+  present: 'bg-present-soft text-present',
+  absent: 'bg-absent-soft text-absent',
+  excused: 'bg-excused-soft text-excused',
+  info: 'bg-info-soft text-info',
+  neutral: 'bg-sunken text-ink-3',
+};
+
+const PILL_DOT = {
+  present: 'bg-present',
+  absent: 'bg-absent',
+  excused: 'bg-excused',
+  info: 'bg-info',
+  neutral: 'bg-ink-3',
+};
+
+export function Pill({ status = 'neutral', children, className = '' }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-medium capitalize ${PILL_STYLES[status] || PILL_STYLES.neutral} ${className}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${PILL_DOT[status] || PILL_DOT.neutral}`} />
+      {children}
+    </span>
+  );
+}
+
+export function Avatar({ name, src, size = 32 }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt=""
+        className="shrink-0 rounded-full object-cover"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-full bg-field-soft font-semibold text-field"
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
+      {name?.[0]?.toUpperCase() || '?'}
+    </span>
+  );
+}

@@ -222,7 +222,7 @@ export const registerService = async (data) => {
 export const loginService = async (data) => {
   const { email, password } = data;
 
-  const userExists = await User.findOne({ email }).select("+password");
+  const userExists = await User.findOne({ email }).select("+password").populate('worker_id', 'avatar');
   if (!userExists) {
     const error = new Error("User not Fount");
     error.statusCode = 401;
