@@ -36,6 +36,7 @@ export const useWorker = () => {
         limit: LIMIT,
       }),
     placeholderData: keepPreviousData,
+    refetchOnWindowFocus: false,
   });
 
   const workers = data?.workers || [];

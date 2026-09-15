@@ -32,6 +32,12 @@ export const useWorkerDetail = (workerId) => {
       setIsEditOpen(false);
       queryClient.invalidateQueries({queryKey: ['worker', workerId]});
       queryClient.invalidateQueries({ queryKey: ['workers'] })
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message ||
+        'Failed to update worker'
+      )
     }
   })
 
