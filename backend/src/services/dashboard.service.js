@@ -10,7 +10,7 @@ export const getDashboardService  = async (farm_id, user) => {
     const now = new Date();
 
     const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
+    todayStart.setUTCHours(0, 0, 0, 0);
 
     const todayEnd = new Date(todayStart);
     todayEnd.setUTCDate(todayEnd.getUTCDate() + 1);
@@ -118,7 +118,7 @@ export const getDashboardService  = async (farm_id, user) => {
               })
               .limit(5)
               .select(
-                "name phone CIN contract_type daily_rate status avatar ceartedAt"
+                "name phone CIN contract_type daily_rate status avatar createdAt"
               )
               .lean(),
 
@@ -285,9 +285,9 @@ export const getDashboardService  = async (farm_id, user) => {
     }
 
     if(user.role === "supervisor") {
-        const wokrerScope = buildWorkerScope(farm_id, user);
+        const workerScope = buildWorkerScope(farm_id, user);
 
-        const allWorkers = await Worker.find(wokrerScope)
+        const allWorkers = await Worker.find(workerScope)
             .select('_id status')
             .lean();
 
@@ -295,7 +295,7 @@ export const getDashboardService  = async (farm_id, user) => {
             worker => worker.status === "active"
         );
 
-        const wokrerIds = allWorkers.map(
+        const workerIds = allWorkers.map(
             worker => worker._id
         );
 
@@ -335,7 +335,7 @@ export const getDashboardService  = async (farm_id, user) => {
                     $match: {
                         farm_id,
                         'assignments.worker_id': {
-                            in: wokrerIds
+                            $in: workerIds
                         }
                     }
                 },
@@ -346,7 +346,7 @@ export const getDashboardService  = async (farm_id, user) => {
                 {
                     $match: {
                         "assignments.worker_id": {
-                            $in: wokrerIds
+                            $in: workerIds
                         }
                     }
                 },
@@ -362,7 +362,7 @@ export const getDashboardService  = async (farm_id, user) => {
             Task.find({
                 farm_id,
                 'assignments.worker_id': {
-                    $in: wokrerIds,
+                    $in: workerIds,
                 }
             })
               .populate('assignments.worker_id', 'name avatar')
@@ -389,7 +389,7 @@ export const getDashboardService  = async (farm_id, user) => {
             const assignments = task.assignments.filter(
                 assignment => {
                     const workerId = assignment.worker_id?._id ?? assignment.worker_id;
-                    return wokrerIds.some(
+                    return workerIds.some(
                         id => String(id) === String(workerId)
                     )
                 }
@@ -500,7 +500,7 @@ export const getDashboardService  = async (farm_id, user) => {
                 year: currentYear
             })
             .select(
-                'month year working_days daily rate base_salary bonuses deductions net_salary status paid_at'
+                'month year working_days daily_rate base_salary bonuses deductions net_salary status paid_at'
             )
             .lean(),
 
