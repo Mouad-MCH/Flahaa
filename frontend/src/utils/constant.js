@@ -13,3 +13,13 @@ export const navItems = [
   { to: '/my-tasks',    label: 'My Tasks',       icon: ListTodo,       roles: ['worker'] },
   { to: '/my-salary',   label: 'My Salary',      icon: Wallet,         roles: ['worker'] },
 ];
+
+export const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+export const CURRENT_YEAR = new Date().getFullYear();
+export const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - 2 + i);
+
+export const RAIL = { present: 'bg-present', absent: 'bg-absent', excused: 'bg-excused' };

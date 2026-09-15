@@ -1,4 +1,5 @@
-import { Tractor } from "lucide-react";
+import { useEffect } from "react";
+import { Tractor, X } from "lucide-react";
 
 export function Field({ label, required, hint, error, children }) {
   return (
@@ -81,6 +82,42 @@ export function Pill({ status = 'neutral', children, className = '' }) {
       <span className={`h-1.5 w-1.5 rounded-full ${PILL_DOT[status] || PILL_DOT.neutral}`} />
       {children}
     </span>
+  );
+}
+
+export function Modal({ title, description, onClose, footer, children, maxWidth = 'max-w-lg' }) {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose?.();
+      }}
+    >
+      <div className={`relative w-full ${maxWidth} rounded-card border border-line bg-card shadow-lift`} role="dialog" aria-modal="true">
+        <button type="button" onClick={onClose} className="absolute right-4 top-4 text-ink-3 hover:text-ink">
+          <X size={18} />
+        </button>
+
+        {(title || description) && (
+          <div className="border-b border-line px-5 py-4 pr-10">
+            {title && <h2 className="text-sm font-semibold text-ink">{title}</h2>}
+            {description && <p className="mt-1 text-xs text-ink-2">{description}</p>}
+          </div>
+        )}
+
+        <div className="max-h-[70vh] overflow-y-auto px-5 py-4">{children}</div>
+
+        {footer && <div className="flex items-center justify-end gap-3 border-t border-line px-5 py-4 bg-sunken">{footer}</div>}
+      </div>
+    </div>
   );
 }
 

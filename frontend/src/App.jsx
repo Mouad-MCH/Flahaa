@@ -10,6 +10,8 @@ import AuthRedirect from './components/AuthRedirect'
 import FarmGuard from './components/FarmGuard'
 import SelectFarmPage from './pages/SelectFarmPage'
 import MainLayout from './components/layout/MainLayout'
+import WorkersPage from './pages/WorkersPage'
+import WorkerDetailPage from './pages/workerDetailPage'
 
 const App = () => {
   return (
@@ -59,6 +61,18 @@ const App = () => {
               <FarmGuard>
                 <DashboardPage />
               </FarmGuard>
+          } />
+
+          <Route path='/workers' element={
+            <RoleRoute roles={['admin', 'supervisor']}>
+              <WorkersPage/>
+            </RoleRoute>
+          } />
+
+          <Route path='/workers/:id' element={
+            <RoleRoute roles={['admin', 'supervisor']}>
+              <WorkerDetailPage/>
+            </RoleRoute>
           } />
 
           </Route>
