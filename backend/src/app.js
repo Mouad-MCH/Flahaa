@@ -15,6 +15,7 @@ import PayrollRouter from './routes/payroll.routes.js'
 import FarmRoutes from './routes/farm.routes.js'
 import UserRoutes from './routes/user.routes.js'
 import RegistrationTokenRoutes from './routes/registrationToken.routes.js'
+import DashboardRoutes from './routes/dashboard.routes.js';
 
 import { errorHandler, notFound } from './middlewares/errHandler.js';
 import { swaggerSpec } from './config/swagger.js';
@@ -57,7 +58,8 @@ app.use('/api/tasks', TasksRouter);
 app.use('/api/payrolls', PayrollRouter);
 app.use('/api/farms', FarmRoutes);
 app.use('/api/users', UserRoutes);
-app.use('/api/registration-tokens', RegistrationTokenRoutes)
+app.use('/api/registration-tokens', RegistrationTokenRoutes);
+app.use('/api/dashboard', DashboardRoutes);
 
 
 app.use(notFound);

@@ -1,6 +1,7 @@
 import { Bell, Menu } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore.js';
 import { useFarmStore } from '../../store/farmStore.js';
+import { Avatar } from '../ui/ui.jsx';
 
 const Navbar = ({ pageTitle, isMobile, onMenuClick}) => {
   const user = useAuthStore((s) => s.user);
@@ -33,9 +34,10 @@ const Navbar = ({ pageTitle, isMobile, onMenuClick}) => {
           <Bell size={16} className='text-ink-2 text-sm font-medium cp hover:text-ink' />
         </div>
       <div className="flex items-center gap-2.5">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-field-soft text-xs font-bold text-field">
+        {/* <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-field-soft text-xs font-bold text-field">
           {user?.name?.[0]?.toUpperCase()}
-        </div>
+        </div> */}
+      <Avatar name={user?.name} src={user?.worker_id?.avatar} />
         <div className="hidden leading-tight sm:block">
           <p className="text-xs font-semibold text-ink">{user?.name}</p>
           <p className="text-[10px] capitalize text-ink-3">{user?.role}</p>
