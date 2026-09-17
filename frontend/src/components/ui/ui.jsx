@@ -141,3 +141,14 @@ export function Avatar({ name, src, size = 32 }) {
     </span>
   );
 }
+
+export function EmptyState({ icon, title, description, action }) {
+  return (
+    <div className="empty ">
+      {icon && <div className="p-5 c">{icon}</div>}
+      <h4>{title}</h4>
+      {description && <p>{description}</p>}
+      {action}
+    </div>
+  );
+}

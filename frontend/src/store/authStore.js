@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../services/api.js';
 import { useFarmStore } from './farmStore.js';
+import { queryClient } from '../lib/queryClient.js';
 
 
 export const useAuthStore = create(
@@ -22,6 +23,7 @@ export const useAuthStore = create(
 
                     const {token, user} = response.data.data;
 
+                    queryClient.clear();
                     set({user, token, isAuthenticated: true, loading: false});
                     return { success: true };
 
@@ -40,6 +42,7 @@ export const useAuthStore = create(
                     const response = await api.post('/auth/login', userData);
                     const { token, user } = response.data.data;
 
+                    queryClient.clear();
                     set({ user, token, isAuthenticated: true, loading: false })
                     return { success: true }
 
@@ -53,6 +56,7 @@ export const useAuthStore = create(
             logout: async () => {
                 set({ user: null, token: null, isAuthenticated: false, loading: false, error: null });
                 useFarmStore.getState().clearActiveFarm();
+                queryClient.clear();
             },
 
             setToken: (token) => set({ token }),
@@ -65,8 +69,9 @@ export const useAuthStore = create(
                   loading: false,
                   error: null,
                 });
-            
+
                 useFarmStore.getState().clearActiveFarm();
+                queryClient.clear();
             },
  
 

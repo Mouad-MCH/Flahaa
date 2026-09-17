@@ -35,7 +35,7 @@ export const workerIdParamSchema = z.object({
 });
 
 export const listWorkersQuerySchema = z.object({
-  farm_id: objectId,
+  farm_id: objectId.optional(),
   status: z.enum(['active', 'inactive']).optional(),
   search: z.string().trim().min(1).optional(),
   page: z.coerce.number().int().positive().default(1),

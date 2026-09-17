@@ -30,6 +30,7 @@ const WorkersPage = () => {
     handleDeleteConfirm,
     isSubmitting,
     isDeleting,
+    supervisors,
   } = useWorker();
 
   if (isLoading) return <PageLoader title="Loading workers…" />;
@@ -56,6 +57,7 @@ const WorkersPage = () => {
           onSubmit={handleFormSubmit}
           onClose={handleCloseForm}
           isSubmitting={isSubmitting}
+          supervisors={supervisors}
         />
       )}
 

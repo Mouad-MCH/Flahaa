@@ -12,6 +12,9 @@ import SelectFarmPage from './pages/SelectFarmPage'
 import MainLayout from './components/layout/MainLayout'
 import WorkersPage from './pages/WorkersPage'
 import WorkerDetailPage from './pages/workerDetailPage'
+import SupervisorsPage from './pages/SupervisorsPage'
+import SupervisorDetailPage from './pages/SupervisorDetailPage'
+import AttendancePage from './pages/AttendancePage'
 
 const App = () => {
   return (
@@ -72,6 +75,24 @@ const App = () => {
           <Route path='/workers/:id' element={
             <RoleRoute roles={['admin', 'supervisor']}>
               <WorkerDetailPage/>
+            </RoleRoute>
+          } />
+
+          <Route path='/supervisors' element={
+            <RoleRoute roles={['admin']}>
+              <SupervisorsPage/>
+            </RoleRoute>
+          } />
+
+          <Route path='/supervisor/:id' element={
+            <RoleRoute roles={['admin']}>
+              <SupervisorDetailPage/>
+            </RoleRoute>
+          } />
+
+          <Route path='/attendance' element={
+            <RoleRoute roles={['admin', 'supervisor']}>
+              <AttendancePage/>
             </RoleRoute>
           } />
 
