@@ -32,7 +32,7 @@ const SupervisorsPage = () => {
   return (
     <div>
       <SupervisorsHeader 
-        total={2}
+        total={supervisors?.length ?? 0}
         onAddSupervisor={handleAddSupervisor}
       />
 

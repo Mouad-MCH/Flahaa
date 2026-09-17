@@ -10,7 +10,6 @@ export const useAttendance = () => {
     const today = new Date().toISOString().split('T')[0];
     const [date, setDate] = useState(today);
 
-    const [workers, setWorkers] = useState([])
 
     const queryClient = useQueryClient();
 
@@ -42,11 +41,10 @@ export const useAttendance = () => {
 
     const totalWorkers = (attendance?.total_recorded + attendance?.total_unrecorded) || 0;
 
-
-    useEffect(() => {
-        if (!attendance) return;
-        setWorkers([...(attendance.records || []), ...(attendance.unrecorded_workers || [])])
-    }, [attendance])
+    const workers = [
+        ...(attendance?.records || []),
+        ...(attendance?.unrecorded_workers || []),
+    ];
 
 
 

@@ -3,11 +3,13 @@ import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tansta
 import toast from 'react-hot-toast';
 import { listWorkers, createWorker, updateWorker, deleteWorker } from '../services/workerService';
 import { listSupervisor } from '../services/supervisorService.js';
+import { useAuthStore } from '../store/authStore.js';
 
 const LIMIT = 10;
 
 export const useWorker = () => {
   const queryClient = useQueryClient();
+  const user = useAuthStore(state => state.user)
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -43,7 +45,7 @@ export const useWorker = () => {
   const {data: supervisors } = useQuery({
     queryKey: ['supervisors_wokrer_form'],
     queryFn: listSupervisor,
-    enabled: isFormOpen
+    enabled: isFormOpen && user?.role === "admin"
   });
 
   const workers = data?.workers || [];

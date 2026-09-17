@@ -23,7 +23,7 @@ export const useSupervisors = () => {
         },
         onError: (error) => {
             toast.error(
-                error.response?.data?.message ||'Failed tot delete supervisor'
+                error.response?.data?.message ||'Failed to delete supervisor'
             )
         }
     })
@@ -57,7 +57,7 @@ export const useSupervisors = () => {
     })
 
     const handlDeleteConfirm = () => {
-        if (deletingSupervisor) deleteMutation.mutate(deleteMutation._id);
+        if (deletingSupervisor) deleteMutation.mutate(deletingSupervisor._id);
     }
 
     const handleAddSupervisor = () => {
@@ -102,7 +102,7 @@ export const useSupervisors = () => {
 
         handleCloseForm,
 
-        isSubmitting: createMutation.isPending,
+        isSubmitting: createMutation.isPending || updateMutation.isPending,
         isDeleting: deleteMutation.isPending
     }
 

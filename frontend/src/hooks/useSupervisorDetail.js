@@ -20,7 +20,6 @@ export const useSupervisorDetail = (supervisorId) => {
         mutationFn: ({id, data}) => updateSupervisor(id, data),
         onSuccess: () => {
             toast.success('Supervisor updated successfully');
-            setIsFormOpen(false);
             queryClient.invalidateQueries({queryKey: ['supervisors']});
             queryClient.invalidateQueries({queryKey: ['supervisor', supervisorId]});
         },
@@ -32,7 +31,7 @@ export const useSupervisorDetail = (supervisorId) => {
 
 
   return {
-    supervisor: data?.supervisor || {},
+    supervisor: data?.supervisor ?? null,
     isSupervisorLoading,
     workers,
     isWorkersLoading: isSupervisorLoading,

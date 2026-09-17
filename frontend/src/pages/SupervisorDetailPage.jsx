@@ -17,7 +17,6 @@ const SupervisorDetailPage = () => {
     activeWorkers,
   } = useSupervisorDetail(id);
 
-  console.log(supervisor)
 
   if (isSupervisorLoading) return <PageLoader title="Loading supervisor…" />;
 
