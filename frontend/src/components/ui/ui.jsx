@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { Tractor, X } from "lucide-react";
 
-export function Field({ label, required, hint, error, children }) {
+export function Field({ label, required, hint, error, children, className="" }) {
   return (
-    <div className="field">
+    <div className={`field ${className}`}>
       {label && <label>{label} {required && <span className="req">*</span>}</label>}
       {children}
       {error ? <p className="err-text">{error}</p> : hint ? <p className="hint">{hint}</p> : null}

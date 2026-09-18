@@ -1,13 +1,18 @@
 import { useAuthStore } from "../store/authStore";
 import { useSelectFarmPage } from '../hooks/useSelectFarmPage.js'
 import FarmCart from "../components/ui/FarmCart.jsx";
+import FarmModal from "../components/ui/FarmModal.jsx";
 import { Button, PageLoader } from "../components/ui/ui.jsx";
 import { PlusIcon } from "lucide-react";
 
 const SelectFarmPage = () => {
   const user = useAuthStore((state) => state.user);
 
-  const {farms, isLoading, isError, selectFarm, refetch} = useSelectFarmPage()
+  const {
+    farms, isLoading, isError, selectFarm, refetch,
+    createFarm, createFarmLoading,
+    isModalOpen, openModal, closeModal,
+  } = useSelectFarmPage()
 
   if (isLoading) {
     return (
@@ -46,7 +51,7 @@ const SelectFarmPage = () => {
           <h3 className="font-medium">{farms.length} farms</h3>
         </div>
 
-        <Button className="w-30 px-1 h-10 cursor-pointer flex items-center gap-2">
+        <Button className="w-30 px-1 h-10 cursor-pointer flex items-center gap-2" onClick={openModal}>
           <PlusIcon/>
           <h2>Add Farm</h2>
         </Button>
@@ -55,10 +60,14 @@ const SelectFarmPage = () => {
       <div className="grid gap-3 grid-cols-4 max-md:grid-cols-2 max-sm:grid-cols-1 p-5">
         {
           farms.map((farm) => (
-            <FarmCart farm={farm} selectFarm={selectFarm} />
+            <FarmCart key={farm._id} farm={farm} selectFarm={selectFarm} />
           ))
         }
       </div>
+
+      {isModalOpen && (
+        <FarmModal onSubmit={createFarm} onClose={closeModal} isSubmitting={createFarmLoading} />
+      )}
     </div>
   );
 };

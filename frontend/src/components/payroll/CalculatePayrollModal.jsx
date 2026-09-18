@@ -4,8 +4,15 @@ import { Field, Modal } from "../ui/ui";
 
 const FORM_ID = "calculate-payroll-form";
 
-const CalculatePayrollModal = ({ mode = "calculate", workers = [], month, year, onSubmit, onClose, isSubmitting }) => {
-
+const CalculatePayrollModal = ({
+  mode = "calculate",
+  workers = [],
+  month,
+  year,
+  onSubmit,
+  onClose,
+  isSubmitting,
+}) => {
   const [workerId, setWorkerId] = useState("");
   const [bonuses, setBonuses] = useState("0");
   const [deductions, setDeductions] = useState("0");
@@ -60,7 +67,11 @@ const CalculatePayrollModal = ({ mode = "calculate", workers = [], month, year, 
       {error && <p className="err-text mb-3">{error}</p>}
       <form id={FORM_ID} onSubmit={handleSubmit}>
         <Field label="Worker" required>
-          <select className="select" value={workerId} onChange={(e) => setWorkerId(e.target.value)}>
+          <select
+            className="select"
+            value={workerId}
+            onChange={(e) => setWorkerId(e.target.value)}
+          >
             <option value="">Select a worker</option>
             {workers.map((w) => (
               <option key={w._id} value={w._id}>
@@ -69,17 +80,38 @@ const CalculatePayrollModal = ({ mode = "calculate", workers = [], month, year, 
             ))}
           </select>
         </Field>
-
-          <Field label="Bonuses (MAD)" hint="Optional">
-            <input type="number" min="0" step="0.01" className="input" value={bonuses} onChange={(e) => setBonuses(e.target.value)} />
+        <div className="flex items-center justify-between w-full mt-3 gap-2">
+          <Field label="Bonuses (MAD)" hint="Optional" className="flex-1">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className="input"
+              value={bonuses}
+              onChange={(e) => setBonuses(e.target.value)}
+            />
           </Field>
 
-        <Field label={"Deductions (MAD)"} hint="Optional">
-          <input type="number" min="0" step="0.01" className="input" value={deductions} onChange={(e) => setDeductions(e.target.value)} />
-        </Field>
+          <Field label={"Deductions (MAD)"} hint="Optional" className="flex-1">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              className="input"
+              value={deductions}
+              onChange={(e) => setDeductions(e.target.value)}
+            />
+          </Field>
+        </div>
 
         <Field label="Notes" hint="Optional">
-          <textarea className="input" rows={2} style={{ resize: "none" }} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea
+            className="input"
+            rows={2}
+            style={{ resize: "none" }}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
         </Field>
       </form>
     </Modal>
