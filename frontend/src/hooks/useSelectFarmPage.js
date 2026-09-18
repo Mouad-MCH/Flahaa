@@ -15,6 +15,7 @@ export function useSelectFarmPage() {
     const { data: farms = [], isLoading, isError, refetch } = useQuery({
         queryKey: ["farms", "mine"],
         queryFn: getMyFarms,
+        placeholderData: keepPreviousData,
     });
 
     const createFarmMutation = useMutation({

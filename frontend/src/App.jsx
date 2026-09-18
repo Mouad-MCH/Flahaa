@@ -71,37 +71,49 @@ const App = () => {
 
           <Route path='/workers' element={
             <RoleRoute roles={['admin', 'supervisor']}>
-              <WorkersPage/>
+              <FarmGuard>
+                <WorkersPage/>
+              </FarmGuard>
             </RoleRoute>
           } />
 
           <Route path='/workers/:id' element={
             <RoleRoute roles={['admin', 'supervisor']}>
-              <WorkerDetailPage/>
+              <FarmGuard>
+                <WorkerDetailPage/>
+              </FarmGuard>
             </RoleRoute>
           } />
 
           <Route path='/supervisors' element={
             <RoleRoute roles={['admin']}>
-              <SupervisorsPage/>
+              <FarmGuard>
+                <SupervisorsPage/>
+              </FarmGuard>
             </RoleRoute>
           } />
 
           <Route path='/supervisor/:id' element={
             <RoleRoute roles={['admin']}>
-              <SupervisorDetailPage/>
+              <FarmGuard>
+                <SupervisorDetailPage/>
+              </FarmGuard>
             </RoleRoute>
           } />
 
           <Route path='/attendance' element={
             <RoleRoute roles={['admin', 'supervisor']}>
-              <AttendancePage/>
+              <FarmGuard>
+                <AttendancePage/>
+              </FarmGuard>
             </RoleRoute>
           } />
 
           <Route path='/tasks' element={
             <RoleRoute roles={['admin', 'supervisor']}>
-              <TasksPage/>
+              <FarmGuard>
+                <TasksPage/>
+              </FarmGuard>
             </RoleRoute>
           } />
 
@@ -113,7 +125,9 @@ const App = () => {
 
           <Route path='/payroll' element={
             <RoleRoute roles={['admin']}>
-              <PayrollPage/>
+              <FarmGuard>
+                <PayrollPage/>
+              </FarmGuard>
             </RoleRoute>
           } />
 

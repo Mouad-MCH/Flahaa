@@ -14,9 +14,7 @@ import { listWorkers } from '../services/workerService';
 
 const STATUS_LIST = ['pending', 'in_progress', 'done'];
 
-// A 403 from createTask/addAssignees carries unauthorized_worker_ids when the
-// caller doesn't own one or more of the requested workers and has no approved
-// loan for this date — surface that distinctly from a generic failure.
+
 function assignmentErrorMessage(error, fallback) {
   const count = error.response?.data?.unauthorized_worker_ids?.length;
   if (count) {
