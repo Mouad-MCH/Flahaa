@@ -144,11 +144,15 @@ export function Avatar({ name, src, size = 32 }) {
 
 export function EmptyState({ icon, title, description, action }) {
   return (
-    <div className="empty ">
-      {icon && <div className="p-5 c">{icon}</div>}
-      <h4>{title}</h4>
-      {description && <p>{description}</p>}
-      {action}
+    <div className="flex flex-col items-center justify-center gap-1 px-6 py-14 text-center">
+      {icon && (
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-sunken text-ink-3">
+          {icon}
+        </div>
+      )}
+      <h4 className="text-sm font-semibold text-ink">{title}</h4>
+      {description && <p className="max-w-sm text-xs text-ink-3">{description}</p>}
+      {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }

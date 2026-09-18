@@ -15,6 +15,9 @@ import WorkerDetailPage from './pages/workerDetailPage'
 import SupervisorsPage from './pages/SupervisorsPage'
 import SupervisorDetailPage from './pages/SupervisorDetailPage'
 import AttendancePage from './pages/AttendancePage'
+import TasksPage from './pages/TasksPage'
+import MyTasksPage from './pages/MyTasksPage'
+import PayrollPage from './pages/PayrollPage'
 
 const App = () => {
   return (
@@ -93,6 +96,24 @@ const App = () => {
           <Route path='/attendance' element={
             <RoleRoute roles={['admin', 'supervisor']}>
               <AttendancePage/>
+            </RoleRoute>
+          } />
+
+          <Route path='/tasks' element={
+            <RoleRoute roles={['admin', 'supervisor']}>
+              <TasksPage/>
+            </RoleRoute>
+          } />
+
+          <Route path='/my-tasks' element={
+            <RoleRoute roles={['worker']}>
+              <MyTasksPage/>
+            </RoleRoute>
+          } />
+
+          <Route path='/payroll' element={
+            <RoleRoute roles={['admin']}>
+              <PayrollPage/>
             </RoleRoute>
           } />
 
