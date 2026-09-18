@@ -59,7 +59,7 @@ const PayrollTable = ({ records = [], isLoading, onMarkPaid }) => {
                           <span className="text-absent">{r.deductions}</span> ={" "}
                           <span className="font-bold text-ink">{r.net_salary} MAD</span>
                         </p>
-                        <p className="text-[10px] text-ink-3">base + bonus – advance</p>
+                        <p className="text-[10px] text-ink-3">base + bonus – deductions</p>
                       </td>
                       <td className="px-5 py-3">
                         <Pill status={meta.pill}>{meta.label}</Pill>
