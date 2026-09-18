@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { listWorkers, createWorker, updateWorker, deleteWorker } from '../services/workerService';
+import { listSupervisor } from '../services/supervisorService.js';
+import { useAuthStore } from '../store/authStore.js';
 
 const LIMIT = 10;
 
 export const useWorker = () => {
   const queryClient = useQueryClient();
+  const user = useAuthStore(state => state.user)
 
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -37,6 +40,12 @@ export const useWorker = () => {
       }),
     placeholderData: keepPreviousData,
     refetchOnWindowFocus: false,
+  });
+
+  const {data: supervisors } = useQuery({
+    queryKey: ['supervisors_wokrer_form'],
+    queryFn: listSupervisor,
+    enabled: isFormOpen && user?.role === "admin"
   });
 
   const workers = data?.workers || [];
@@ -127,6 +136,8 @@ export const useWorker = () => {
     handleCloseForm,
     handleFormSubmit,
     handleDeleteConfirm,
+
+    supervisors,
 
     isSubmitting: createMutation.isPending || updateMutation.isPending,
     isDeleting: deleteMutation.isPending,

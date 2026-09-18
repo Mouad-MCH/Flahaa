@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tansta
 import toast from 'react-hot-toast';
 import { getWorker, updateWorker } from '../services/workerService.js';
 import { getWorkerAttendance } from '../services/attendanceService.js';
+import { createRegistrationToken } from '../services/registrationTokenService.js';
 
 export const useWorkerDetail = (workerId) => {
   const queryClient = useQueryClient();
@@ -11,6 +12,7 @@ export const useWorkerDetail = (workerId) => {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   const { data: worker, isLoading: isWorkerLoading } = useQuery({
     queryKey: ['worker', workerId],
@@ -41,6 +43,20 @@ export const useWorkerDetail = (workerId) => {
     }
   })
 
+  const inviteMutation = useMutation({
+    mutationFn: createRegistrationToken,
+    onSuccess: () => {
+      toast.success('Worker invited successfully');
+      setIsInviteOpen(false);
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message ||
+        'Failed to invite worker'
+      )
+    }
+  })
+
   return {
     worker,
     isWorkerLoading,
@@ -60,5 +76,11 @@ export const useWorkerDetail = (workerId) => {
     closeEdit: () => setIsEditOpen(false),
     handleUpdate: (payload) => updateMutation.mutate(payload),
     isUpdating: updateMutation.isPending,
+
+    isInviteOpen,
+    openInvite: () => setIsInviteOpen(true),
+    closeInvite: () => setIsInviteOpen(false),
+    handleInvite: (payload) => inviteMutation.mutate(payload),
+    isInviting: inviteMutation.isPending,
   };
 };

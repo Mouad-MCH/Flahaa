@@ -12,6 +12,12 @@ import SelectFarmPage from './pages/SelectFarmPage'
 import MainLayout from './components/layout/MainLayout'
 import WorkersPage from './pages/WorkersPage'
 import WorkerDetailPage from './pages/workerDetailPage'
+import SupervisorsPage from './pages/SupervisorsPage'
+import SupervisorDetailPage from './pages/SupervisorDetailPage'
+import AttendancePage from './pages/AttendancePage'
+import TasksPage from './pages/TasksPage'
+import MyTasksPage from './pages/MyTasksPage'
+import PayrollPage from './pages/PayrollPage'
 
 const App = () => {
   return (
@@ -65,13 +71,63 @@ const App = () => {
 
           <Route path='/workers' element={
             <RoleRoute roles={['admin', 'supervisor']}>
-              <WorkersPage/>
+              <FarmGuard>
+                <WorkersPage/>
+              </FarmGuard>
             </RoleRoute>
           } />
 
           <Route path='/workers/:id' element={
             <RoleRoute roles={['admin', 'supervisor']}>
-              <WorkerDetailPage/>
+              <FarmGuard>
+                <WorkerDetailPage/>
+              </FarmGuard>
+            </RoleRoute>
+          } />
+
+          <Route path='/supervisors' element={
+            <RoleRoute roles={['admin']}>
+              <FarmGuard>
+                <SupervisorsPage/>
+              </FarmGuard>
+            </RoleRoute>
+          } />
+
+          <Route path='/supervisor/:id' element={
+            <RoleRoute roles={['admin']}>
+              <FarmGuard>
+                <SupervisorDetailPage/>
+              </FarmGuard>
+            </RoleRoute>
+          } />
+
+          <Route path='/attendance' element={
+            <RoleRoute roles={['admin', 'supervisor']}>
+              <FarmGuard>
+                <AttendancePage/>
+              </FarmGuard>
+            </RoleRoute>
+          } />
+
+          <Route path='/tasks' element={
+            <RoleRoute roles={['admin', 'supervisor']}>
+              <FarmGuard>
+                <TasksPage/>
+              </FarmGuard>
+            </RoleRoute>
+          } />
+
+          <Route path='/my-tasks' element={
+            <RoleRoute roles={['worker']}>
+              <MyTasksPage/>
+            </RoleRoute>
+          } />
+
+          <Route path='/payroll' element={
+            <RoleRoute roles={['admin']}>
+              <FarmGuard>
+                <PayrollPage/>
+              </FarmGuard>
             </RoleRoute>
           } />
 

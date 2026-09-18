@@ -47,7 +47,7 @@ const WorkersTable = ({
                       <Avatar name={w.name} src={w.avatar} size={28} />
                       <div>
                         <p className="text-xs font-medium text-ink">{w.name}</p>
-                        <p className="text-[10px] text-ink-3">{w.phone || '—'}</p>
+                        <p className="text-[10px] text-ink-3">{w.phone || '>'}</p>
                       </div>
                     </div>
                   </td>

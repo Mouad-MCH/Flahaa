@@ -24,7 +24,7 @@ const Navbar = ({ pageTitle, isMobile, onMenuClick}) => {
 
           <div>
             <span className="hidden text-ink-3 sm:inline">&middot;</span>
-            <span className="hidden text-sm text-ink-2 sm:inline">{farm.name || user?.farm_name}</span>
+            <span className="hidden text-sm text-ink-2 sm:inline">{farm?.name || user?.farm_name}</span>
           </div>
       </div>
 

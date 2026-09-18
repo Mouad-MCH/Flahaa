@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { Tractor, X } from "lucide-react";
 
-export function Field({ label, required, hint, error, children }) {
+export function Field({ label, required, hint, error, children, className="" }) {
   return (
-    <div className="field">
+    <div className={`field ${className}`}>
       {label && <label>{label} {required && <span className="req">*</span>}</label>}
       {children}
       {error ? <p className="err-text">{error}</p> : hint ? <p className="hint">{hint}</p> : null}
@@ -139,5 +139,20 @@ export function Avatar({ name, src, size = 32 }) {
     >
       {name?.[0]?.toUpperCase() || '?'}
     </span>
+  );
+}
+
+export function EmptyState({ icon, title, description, action }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-1 px-6 py-14 text-center">
+      {icon && (
+        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-sunken text-ink-3">
+          {icon}
+        </div>
+      )}
+      <h4 className="text-sm font-semibold text-ink">{title}</h4>
+      {description && <p className="max-w-sm text-xs text-ink-3">{description}</p>}
+      {action && <div className="mt-4">{action}</div>}
+    </div>
   );
 }

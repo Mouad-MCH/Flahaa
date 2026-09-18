@@ -1,8 +1,9 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Banknote, Briefcase, CalendarDays, MapPin, Pencil, Phone } from 'lucide-react';
+import { ArrowLeft, Banknote, Briefcase, CalendarDays, MapPin, Pencil, Phone, Send, Shredder } from 'lucide-react';
 import { Avatar, PageLoader, Pill } from '../components/ui/ui.jsx';
 import StatCard from '../components/dashboard/StatCard';
 import WorkerForm from '../components/workers/WorkerForm';
+import WorkerInviteForm from '../components/workers/WorkerInviteForm';
 import { useWorkerDetail } from '../hooks/useWorkerDetail.js';
 import { RAIL, YEARS, CURRENT_YEAR, MONTHS } from '../utils/constant.js'
 
@@ -25,6 +26,11 @@ const WorkerDetailPage = () => {
     closeEdit,
     handleUpdate,
     isUpdating,
+    isInviteOpen,
+    openInvite,
+    closeInvite,
+    handleInvite,
+    isInviting,
   } = useWorkerDetail(id);
 
   if (isWorkerLoading) return <PageLoader title="Loading worker…" />;
@@ -92,6 +98,7 @@ const WorkerDetailPage = () => {
           </div>
         </div>
 
+      <div className='flex items-center gap-5'>
         <button
           type="button"
           onClick={openEdit}
@@ -100,6 +107,15 @@ const WorkerDetailPage = () => {
           <Pencil size={15} />
           Edit
         </button>
+        <button
+          type="button"
+          onClick={openInvite}
+          className="flex items-center gap-2 rounded-input border border-line-strong px-4 py-2 text-sm font-medium text-white bg-field hover:bg-field-hover"
+        >
+          <Send size={15} />
+          Invitation
+        </button>
+      </div>
       </div>
 
       <div className="rounded-card border border-line bg-card shadow-card">
@@ -187,6 +203,10 @@ const WorkerDetailPage = () => {
 
       {isEditOpen && (
         <WorkerForm worker={worker} onSubmit={handleUpdate} onClose={closeEdit} isSubmitting={isUpdating} />
+      )}
+
+      {isInviteOpen && (
+        <WorkerInviteForm worker={worker} onSubmit={handleInvite} onClose={closeInvite} isSubmitting={isInviting} />
       )}
     </div>
   );
