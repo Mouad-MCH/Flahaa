@@ -16,6 +16,7 @@ export const registerSchema = z.union([
         confirmPassword: passwordSchema,
 
         farm_name: z.string().min(1, "Farm name is required"),
+        address: z.string().optional().or(z.literal("")),
 
         token: z.undefined().optional(),
     }).refine(

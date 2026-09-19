@@ -9,6 +9,7 @@ import {
   User,
   Phone,
   Tractor,
+  Map,
 } from "lucide-react";
 import { Field, PageLoader } from "../components/ui/ui.jsx";
 import { useRegisterPage } from "../hooks/useRegisterPage.js";
@@ -37,6 +38,8 @@ const RegisterPage = () => {
     setShowPassword,
     showConfirmPassword,
     setShowConfirmPassword,
+    farmAddress,
+    setFarmAddress,
     handleSubmit,
   } = useRegisterPage();
 
@@ -136,6 +139,7 @@ const RegisterPage = () => {
                   </div>
                 </Field>
 
+                <div className="grid grid-cols-2 gap-4">
                 <Field label="Email">
                   <div className="relative">
                     <Mail
@@ -154,7 +158,6 @@ const RegisterPage = () => {
                   </div>
                 </Field>
 
-                <div className="grid grid-cols-2 gap-4">
                   <Field label="Phone" hint="Optional">
                     <div className="relative">
                       <Phone
@@ -190,6 +193,25 @@ const RegisterPage = () => {
                       />
                     </div>
                   </Field>
+
+                  <Field label="Adress Farm">
+                    <div className="relative">
+                      <Map
+                        size={16}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"
+                      />
+                      <input
+                        type="text"
+                        className="input"
+                        style={{ paddingLeft: "2.25rem" }}
+                        placeholder="Beni Mellal, Morocco"
+                        value={farmAddress}
+                        onChange={(e) => setFarmAddress(e.target.value)}
+                        autoComplete="organization"
+                      />
+                    </div>
+                  </Field>
+                  
                 </div>
               </>
             )}

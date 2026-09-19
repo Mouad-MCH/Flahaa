@@ -8,7 +8,7 @@ import crypto from "crypto";
 import mongoose from "mongoose";
 
 export const registerService = async (data) => {
-  const { name, email, phone, password, role, farm_name, token } = data;
+  const { name, email, phone, password, role, farm_name, address, token } = data;
 
   if (role === "admin") {
     const userExists = await User.findOne({ email });
@@ -37,6 +37,7 @@ export const registerService = async (data) => {
 
     const farm = await Farm.create({
       name: farm_name,
+      address,
       owner_id: user._id,
     });
 

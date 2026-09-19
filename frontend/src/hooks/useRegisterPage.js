@@ -31,6 +31,7 @@ export function useRegisterPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [farmName, setFarmName] = useState("");
+  const [farmAddress, setFarmAddress] = useState('')
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -72,6 +73,7 @@ export function useRegisterPage() {
         name,
         email,
         phone: phone || undefined,
+        address: farmAddress,
         password,
         confirmPassword,
         role: "admin",
@@ -110,6 +112,8 @@ export function useRegisterPage() {
     setConfirmPassword,
     showPassword,
     setShowPassword,
+    farmAddress,
+    setFarmAddress,
     showConfirmPassword,
     setShowConfirmPassword,
     handleSubmit,
