@@ -11,7 +11,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAMESPACE: ${{ github.repository_owner }}
+  IMAGE_NAMESPACE: mouad-mch
 
 jobs:
   publish:
@@ -28,18 +28,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/flahaa-backend
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/flahaa-frontend
-          tags: |
-            type=ref,event=branch
-            type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -49,8 +37,9 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/flahaa-backend:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/flahaa-backend:${{ github.sha }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/flahaa-backend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/flahaa-backend:${{ github.sha }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -60,7 +49,8 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/flahaa-frontend:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/flahaa-frontend:${{ github.sha }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/flahaa-frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/flahaa-frontend:${{ github.sha }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
