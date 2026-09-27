@@ -54,9 +54,11 @@ Flahaa/
 The diagrams are maintained in [`docs/diagrams/`](docs/diagrams/):
 
 - [Use-case diagram (PNG)](docs/diagrams/useCase.png)
+- [Class diagram (PNG)](docs/diagrams/class.png)
 - [UML/domain diagram (draw.io)](docs/diagrams/UML.drawio)
 
 ![Flahaa use-case diagram](docs/diagrams/useCase.png)
+![Flahaa class diagram](docs/diagrams/class.png)
 
 The use-case diagram covers Admin, Supervisor, and Worker workflows. The UML diagram documents the main domain entities and their relationships. Update the source diagram whenever a domain model or role workflow changes.
 
