@@ -3,9 +3,11 @@ import Farm from '../models/Farm.js';
 
 
 export const createFarmService = async (farmData, ownerId) => {
-    const { name, address } = farmData;
+    const { name, address, surface } = farmData;
 
-    const farm = await Farm.create({ name, address, owner_id: ownerId });
+    const surfaceN = parseInt(surface);
+
+    const farm = await Farm.create({ name, address, surface: surfaceN, owner_id: ownerId });
 
     return farm;
 }

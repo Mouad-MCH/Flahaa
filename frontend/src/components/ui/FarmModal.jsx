@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Field, Modal } from "./ui";
+import Farm from "../../../../backend/src/models/Farm";
 
 const FORM_ID = "farm-form";
 
 const FarmModal = ({ onSubmit, onClose, isSubmitting }) => {
-  const [form, setForm] = useState({ name: "", address: "" });
+  const [form, setForm] = useState({ name: "", address: "", surface: "" });
   const [error, setError] = useState("");
 
   const handleChange = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -63,6 +64,14 @@ const FarmModal = ({ onSubmit, onClose, isSubmitting }) => {
             className="input"
             value={form.address}
             onChange={handleChange("address")}
+            placeholder="e.g. Beni Mellal, Morocco"
+          />
+        </Field>
+          <Field label="surface" hint="Optional">
+          <input
+            className="input"
+            value={form.surface}
+            onChange={handleChange("surface")}
             placeholder="e.g. Beni Mellal, Morocco"
           />
         </Field>

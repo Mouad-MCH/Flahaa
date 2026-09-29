@@ -14,6 +14,10 @@ const FarmSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: [true, 'Owner_id is required'],
+    },
+    surface: {
+        type: Number,
+        default: 0,
     }
 }, { timestamps: true });
 
